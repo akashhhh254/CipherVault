@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --color-gold-50: #fbf9f5;
+  --color-gold-100: #f5f1e8;
+  --color-gold-200: #e8dec8;
+  --color-gold-300: #d6c6a4;
+  --color-gold-400: #c2ad82;
+  --color-gold-500: #b5a27e;
+  --color-gold-600: #9e8a65;
+  --color-gold-700: #7d6c4d;
+  --color-gold-800: #5c4e37;
+  --color-gold-900: #3d3324;
+}
+
+:root {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F5F2;
+  --bg-dark: #090909;
+  --text-primary: #111111;
+  --text-muted: #777777;
+  --border-subtle: #E5E5E2;
+  --charcoal: #242424;
+  --accent-gold: #B5A27E;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #090909;
+  color: #EDEDED;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Financial-grade discreet scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #090909;
+}
+::-webkit-scrollbar-thumb {
+  background: #242424;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
+}

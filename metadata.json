@@ -1,0 +1,8 @@
+{
+  "name": "CipherVault – Secure Image Encryption & Decryption Platform",
+  "description": "CipherVault enables authenticated clients to securely encrypt, store, download, and decrypt image files using hybrid AES-256-GCM and RSA-3072 cryptography.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

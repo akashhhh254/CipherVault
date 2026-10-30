@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with encrypted RSA key pair envelope and credentials",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "maxLength": 100, "description": "User display name" },
+        "photoURL": { "type": "string", "maxLength": 500, "description": "Avatar URL" },
+        "rsaPublicKeyPem": { "type": "string", "maxLength": 2048, "description": "RSA-3072 public key in PEM format" },
+        "rsaKeyFingerprint": { "type": "string", "maxLength": 64, "description": "SHA-256 fingerprint of RSA public key" },
+        "encryptedPrivateKeyBase64": { "type": "string", "maxLength": 8192, "description": "AES-256-GCM encrypted PKCS#8 RSA private key" },
+        "privateKeySalt": { "type": "string", "maxLength": 128, "description": "Salt for Scrypt/PBKDF2 key derivation" },
+        "privateKeyNonce": { "type": "string", "maxLength": 64, "description": "96-bit nonce for private key AES-GCM" },
+        "privateKeyAuthTag": { "type": "string", "maxLength": 64, "description": "128-bit authentication tag for private key AES-GCM" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when account was created" }
+      },
+      "required": ["email", "rsaPublicKeyPem", "rsaKeyFingerprint", "encryptedPrivateKeyBase64"]
+    },
+    "SecureFile": {
+      "title": "SecureFile",
+      "description": "Metadata container for an AES-256-GCM encrypted image file",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "description": "Unique file identifier" },
+        "userId": { "type": "string", "maxLength": 128, "description": "Owner user UID" },
+        "originalFilename": { "type": "string", "maxLength": 255, "description": "Original file name before encryption" },
+        "mimeType": { "type": "string", "maxLength": 64, "description": "Verified image MIME type" },
+        "originalSizeBytes": { "type": "number", "description": "Original unencrypted file size in bytes" },
+        "encryptedSizeBytes": { "type": "number", "description": "Encrypted ciphertext size in bytes" },
+        "sha256OriginalHash": { "type": "string", "maxLength": 64, "description": "SHA-256 digest of original plaintext image" },
+        "sha256CiphertextHash": { "type": "string", "maxLength": 64, "description": "SHA-256 digest of encrypted ciphertext" },
+        "algorithm": { "type": "string", "enum": ["AES-256-GCM"], "description": "Symmetric cipher algorithm" },
+        "nonceBase64": { "type": "string", "maxLength": 64, "description": "96-bit random nonce in base64" },
+        "authTagBase64": { "type": "string", "maxLength": 64, "description": "128-bit GMAC authentication tag in base64" },
+        "wrappedKeyBase64": { "type": "string", "maxLength": 2048, "description": "RSA-3072 OAEP wrapped AES-256 session key" },
+        "ciphertextBase64": { "type": "string", "description": "Encrypted image payload in base64" },
+        "rsaKeyFingerprint": { "type": "string", "maxLength": 64, "description": "Fingerprint of recipient RSA key" },
+        "exifStripped": { "type": "boolean", "description": "Whether EXIF metadata was scrubbed" },
+        "tagsRemovedCount": { "type": "number", "description": "Count of stripped EXIF metadata tags" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Encryption timestamp" }
+      },
+      "required": ["id", "userId", "originalFilename", "mimeType", "algorithm", "nonceBase64", "authTagBase64", "wrappedKeyBase64", "ciphertextBase64"]
+    },
+    "SecurityAudit": {
+      "title": "SecurityAudit",
+      "description": "Chronological audit event record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "description": "Log identifier" },
+        "userId": { "type": "string", "maxLength": 128, "description": "User UID who triggered event" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Event timestamp" },
+        "eventType": { "type": "string", "maxLength": 64, "description": "Event type identifier" },
+        "severity": { "type": "string", "enum": ["INFO", "WARNING", "CRITICAL"], "description": "Log severity" },
+        "details": { "type": "string", "maxLength": 1000, "description": "Human readable event detail" },
+        "ipAddress": { "type": "string", "maxLength": 64, "description": "Client IP address" }
+      },
+      "required": ["id", "userId", "timestamp", "eventType", "severity", "details"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile with encrypted RSA key pair envelope"
+    },
+    "/users/{userId}/secure_files/{fileId}": {
+      "schema": { "$ref": "#/entities/SecureFile" },
+      "description": "User private encrypted files"
+    },
+    "/users/{userId}/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/SecurityAudit" },
+      "description": "User security audit activity stream"
+    }
+  }
+}

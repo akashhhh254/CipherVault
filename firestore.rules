@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny all unmapped operations
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // User Profile Rules
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Never list user accounts
+
+      allow create: if isOwner(userId)
+        && request.resource.data.email is string
+        && request.resource.data.rsaPublicKeyPem is string
+        && request.resource.data.rsaPublicKeyPem.size() <= 4096
+        && request.resource.data.encryptedPrivateKeyBase64 is string
+        && request.resource.data.encryptedPrivateKeyBase64.size() <= 16384;
+
+      allow update: if isOwner(userId)
+        && request.resource.data.email == resource.data.email;
+
+      allow delete: if false; // User accounts cannot be arbitrarily deleted via client SDK
+
+      // Subcollection: Secure Files
+      match /secure_files/{fileId} {
+        allow get: if isOwner(userId) && isValidId(fileId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && isValidId(fileId)
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.originalFilename is string
+          && request.resource.data.originalFilename.size() <= 255
+          && request.resource.data.algorithm == 'AES-256-GCM'
+          && request.resource.data.nonceBase64 is string
+          && request.resource.data.authTagBase64 is string
+          && request.resource.data.wrappedKeyBase64 is string;
+
+        allow update: if isOwner(userId)
+          && isValidId(fileId)
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.id == resource.data.id;
+
+        allow delete: if isOwner(userId) && isValidId(fileId);
+      }
+
+      // Subcollection: Audit Logs
+      match /audit_logs/{logId} {
+        allow get: if isOwner(userId) && isValidId(logId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && isValidId(logId)
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.eventType is string
+          && request.resource.data.severity in ['INFO', 'WARNING', 'CRITICAL'];
+
+        allow update, delete: if false; // Audit logs are immutable
+      }
+    }
+  }
+}

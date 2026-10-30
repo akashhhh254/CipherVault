@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: ciphervault-app
+    restart: always
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-generate_strong_production_key_32_bytes}
+      - DATABASE_URL=postgresql://ciphervault_user:ciphervault_sec_pass@db:5432/ciphervault_db
+    ports:
+      - "5000:5000"
+    volumes:
+      - vault_data:/app/instance/vault_storage
+    depends_on:
+      - db
+    networks:
+      - ciphervault-net
+
+  db:
+    image: postgres:15-alpine
+    container_name: ciphervault-db
+    restart: always
+    environment:
+      POSTGRES_DB: ciphervault_db
+      POSTGRES_USER: ciphervault_user
+      POSTGRES_PASSWORD: ciphervault_sec_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ciphervault-net
+
+volumes:
+  vault_data:
+  postgres_data:
+
+networks:
+  ciphervault-net:
+    driver: bridge
