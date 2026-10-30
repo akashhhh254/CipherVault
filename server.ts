@@ -63,6 +63,9 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+  // Internal service binding for CipherVault Flask service
+  const CIPHERVAULT_URL = process.env.CIPHERVAULT_URL;
+
   // CSRF token provider
   app.get('/api/csrf-token', (req: Request, res: Response) => {
     const token = crypto.randomBytes(32).toString('hex');
@@ -70,14 +73,75 @@ async function startServer() {
   });
 
   // Health and System Status
-  app.get('/api/health', (req: Request, res: Response) => {
+  app.get('/api/health', async (req: Request, res: Response) => {
+    let pythonServiceStatus = 'NOT_BOUND';
+    if (CIPHERVAULT_URL) {
+      try {
+        const response = await fetch(`${CIPHERVAULT_URL}/security/des-benchmark`, {
+          signal: AbortSignal.timeout(2000),
+        });
+        pythonServiceStatus = response.ok ? 'HEALTHY' : `HTTP_${response.status}`;
+      } catch {
+        pythonServiceStatus = 'UNREACHABLE';
+      }
+    }
+
     res.json({
       status: 'HEALTHY',
       service: 'CipherVault-Cryptographic-Engine',
       nodeVersion: process.version,
       cryptoFips: crypto.getFips ? crypto.getFips() : 0,
       timestamp: new Date().toISOString(),
+      services: {
+        app: 'ONLINE',
+        ciphervault: pythonServiceStatus,
+        ciphervaultUrlBound: Boolean(CIPHERVAULT_URL),
+      },
     });
+  });
+
+  // Proxy to internal CipherVault Flask service when bound
+  app.use('/api/ciphervault', async (req: Request, res: Response) => {
+    if (!CIPHERVAULT_URL) {
+      res.status(503).json({
+        error: 'CipherVault Python service binding not configured.',
+        message: 'CIPHERVAULT_URL is injected automatically by Vercel service bindings.',
+      });
+      return;
+    }
+
+    try {
+      const targetUrl = new URL(req.url, CIPHERVAULT_URL).toString();
+      const headers: Record<string, string> = {
+        'content-type': req.headers['content-type'] || 'application/json',
+      };
+      if (req.headers.authorization) {
+        headers['authorization'] = req.headers.authorization;
+      }
+
+      const fetchOptions: RequestInit = {
+        method: req.method,
+        headers,
+        signal: AbortSignal.timeout(10000),
+      };
+
+      if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
+        fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      }
+
+      const response = await fetch(targetUrl, fetchOptions);
+      res.status(response.status);
+      const contentType = response.headers.get('content-type');
+      if (contentType) res.setHeader('content-type', contentType);
+
+      const data = await response.arrayBuffer();
+      res.send(Buffer.from(data));
+    } catch (err: unknown) {
+      res.status(502).json({
+        error: 'CipherVault Flask service communication error',
+        details: (err as Error).message,
+      });
+    }
   });
 
   // Server-side Cryptographic Verification Endpoint

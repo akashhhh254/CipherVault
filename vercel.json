@@ -1,0 +1,29 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "app": {
+      "root": ".",
+      "framework": "vite",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "ciphervault",
+          "format": "url",
+          "env": "CIPHERVAULT_URL"
+        }
+      ]
+    },
+    "ciphervault": {
+      "root": "CipherVault",
+      "framework": "flask"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    }
+  ]
+}
