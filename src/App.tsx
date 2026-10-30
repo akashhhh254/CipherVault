@@ -11,7 +11,6 @@ import { AuditLogsView } from './components/audit/AuditLogsView';
 import { HelpCenterView } from './components/help/HelpCenterView';
 import { KeyManagementModal } from './components/keys/KeyManagementModal';
 import { AuthModal } from './components/auth/AuthModal';
-import { SplashScreen } from './components/splash/SplashScreen';
 import { LandingPage } from './components/landing/LandingPage';
 import { ToastProvider } from './components/ui/Toast';
 import { vaultStore } from './lib/vaultStore';
@@ -23,14 +22,39 @@ import {
 import { auth, onAuthStateChanged } from './lib/firebase';
 import { EncryptedVaultFile } from './types/crypto';
 
-export default function App() {
-  const [showSplash, setShowSplash] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return sessionStorage.getItem('ciphervault_splash_shown') !== 'true';
-  });
+// Parse current URL hash into view and tab state
+function getRoutingFromHash(): { view: 'landing' | 'dashboard'; tab: string } {
+  if (typeof window === 'undefined') return { view: 'dashboard', tab: 'overview' };
+  const rawHash = window.location.hash.replace(/^#\/?/, '').trim();
 
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard'>('dashboard');
-  const [activeTab, setActiveTab] = useState<string>('overview');
+  if (rawHash === 'landing') {
+    return { view: 'landing', tab: 'overview' };
+  }
+
+  const validTabs = [
+    'overview',
+    'encrypt',
+    'decrypt',
+    'vault',
+    'tamper',
+    'des-compare',
+    'security-tests',
+    'audit-logs',
+    'help',
+  ];
+
+  if (validTabs.includes(rawHash)) {
+    return { view: 'dashboard', tab: rawHash };
+  }
+
+  return { view: 'dashboard', tab: 'overview' };
+}
+
+export default function App() {
+  const initialRoute = getRoutingFromHash();
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard'>(initialRoute.view);
+  const [activeTab, setActiveTab] = useState<string>(initialRoute.tab);
+
   const [files, setFiles] = useState<EncryptedVaultFile[]>(vaultStore.getFiles());
   const [auditLogs, setAuditLogs] = useState(vaultStore.getAuditLogs());
   const [session, setSession] = useState(vaultStore.getSession());
@@ -38,6 +62,32 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedTamperFileId, setSelectedTamperFileId] = useState<string | null>(null);
   const [activeDecryptFileId, setActiveDecryptFileId] = useState<string | null>(null);
+
+  // Sync state when URL hash changes (Back/Forward buttons & manual navigation)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const route = getRoutingFromHash();
+      setCurrentView(route.view);
+      setActiveTab(route.tab);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Update hash when tab or view changes programmatically
+  const navigateToTab = (tab: string) => {
+    setActiveTab(tab);
+    setCurrentView('dashboard');
+    window.location.hash = tab;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateToLanding = () => {
+    setCurrentView('landing');
+    window.location.hash = 'landing';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Subscribe to store updates
   useEffect(() => {
@@ -63,7 +113,7 @@ export default function App() {
           keyFingerprint: existingSession?.keyFingerprint || 'f9a8b7c6d5e4f3a2b1c0',
           token,
           loginTimestamp: new Date().toISOString(),
-          ipAddress: '127.0.0.1 (Authenticated Client TLS)',
+          ipAddress: '127.0.0.1 (Client TLS Handshake)',
         });
       }
     });
@@ -82,18 +132,17 @@ export default function App() {
       }
 
       if (vaultStore.getFiles().length === 0) {
-        // Create synthetic high-resolution confidential defense diagram PNG
+        // Create synthetic high-resolution defense diagram PNG
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          // Minimal monochrome banking & defense grid
-          ctx.fillStyle = '#090909';
+          ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, 256, 256);
 
           // Subtle grid lines
-          ctx.strokeStyle = '#222222';
+          ctx.strokeStyle = '#EEEEEE';
           ctx.lineWidth = 1;
           for (let i = 0; i < 256; i += 32) {
             ctx.beginPath();
@@ -106,24 +155,24 @@ export default function App() {
             ctx.stroke();
           }
 
-          // Gold cryptographic target rings
-          ctx.strokeStyle = '#B5A27E';
+          // Cryptographic target rings in black
+          ctx.strokeStyle = '#111111';
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(128, 128, 70, 0, Math.PI * 2);
           ctx.stroke();
 
-          ctx.strokeStyle = '#665b44';
+          ctx.strokeStyle = '#666666';
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.arc(128, 128, 35, 0, Math.PI * 2);
           ctx.stroke();
 
           // Confidential watermark
-          ctx.fillStyle = '#EDEDED';
+          ctx.fillStyle = '#111111';
           ctx.font = 'bold 11px monospace';
           ctx.fillText('CIPHERVAULT // CONFIDENTIAL', 32, 35);
-          ctx.fillStyle = '#B5A27E';
+          ctx.fillStyle = '#666666';
           ctx.font = '9px monospace';
           ctx.fillText('PAYLOAD: SATELLITE_ORBITAL_RECON', 36, 230);
         }
@@ -164,59 +213,45 @@ export default function App() {
     initializeVault();
   }, []);
 
-  const handleSplashComplete = () => {
-    sessionStorage.setItem('ciphervault_splash_shown', 'true');
-    setShowSplash(false);
-  };
-
   const handleSelectFileForTamper = (fileId: string) => {
     setSelectedTamperFileId(fileId);
-    setActiveTab('tamper');
+    navigateToTab('tamper');
   };
 
   const handleSelectFileForDecrypt = (fileId: string) => {
     setActiveDecryptFileId(fileId);
-    setActiveTab('decrypt');
+    navigateToTab('decrypt');
   };
 
   return (
     <ToastProvider>
-      {/* Splash Screen on initial entry */}
-      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-
       {currentView === 'landing' ? (
         <LandingPage
-          onGetStarted={() => setCurrentView('dashboard')}
+          onGetStarted={() => navigateToTab('overview')}
           onOpenAuth={() => setIsAuthModalOpen(true)}
-          onOpenHelp={() => {
-            setCurrentView('dashboard');
-            setActiveTab('help');
-          }}
-          onExploreArchitecture={() => {
-            setCurrentView('dashboard');
-            setActiveTab('overview');
-          }}
+          onOpenHelp={() => navigateToTab('help')}
+          onExploreArchitecture={() => navigateToTab('overview')}
         />
       ) : (
-        <div className="min-h-screen bg-[#090909] text-[#EDEDED] flex flex-col font-sans selection:bg-[#B5A27E]/30 selection:text-[#B5A27E]">
+        <div className="min-h-screen bg-white text-[#111111] flex flex-col font-sans antialiased selection:bg-[#111111] selection:text-white">
           {/* Top Navigation */}
           <Header
             session={session}
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={navigateToTab}
             onOpenKeyModal={() => setIsKeyModalOpen(true)}
             onOpenAuthModal={() => setIsAuthModalOpen(true)}
-            onViewLanding={() => setCurrentView('landing')}
+            onViewLanding={navigateToLanding}
           />
 
           {/* Main Dashboard Content */}
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             {activeTab === 'overview' && (
               <OverviewView
                 files={files}
                 auditLogs={auditLogs}
                 session={session}
-                onNavigate={setActiveTab}
+                onNavigate={navigateToTab}
                 onSelectFileForTamper={handleSelectFileForTamper}
                 onSelectFileForDecrypt={handleSelectFileForDecrypt}
               />
@@ -224,7 +259,7 @@ export default function App() {
 
             {activeTab === 'encrypt' && (
               <UploadEncryptionView
-                onEncryptionComplete={() => setActiveTab('vault')}
+                onEncryptionComplete={() => navigateToTab('vault')}
                 onOpenKeyModal={() => setIsKeyModalOpen(true)}
               />
             )}
@@ -258,27 +293,24 @@ export default function App() {
             {activeTab === 'help' && <HelpCenterView />}
           </main>
 
-          {/* Private Banking Minimalist Footer */}
-          <footer className="w-full border-t border-[#242424] bg-[#090909] py-8 mt-12 text-center text-xs text-[#777777] font-mono">
+          {/* Clean White + Black Footer */}
+          <footer className="w-full border-t border-[#E5E5E5] bg-white py-6 mt-12 text-xs text-[#666666]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2 h-2 bg-[#B5A27E]" />
-                <span className="font-semibold text-white tracking-wider uppercase font-sans">
-                  CipherVault
-                </span>
-                <span className="text-[#444444]">·</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[#111111]">CipherVault</span>
+                <span aria-hidden="true">·</span>
                 <span>Hybrid AES-256-GCM / RSA-3072 OAEP</span>
               </div>
               <div className="flex items-center gap-6 text-[11px] text-[#666666]">
                 <button
-                  onClick={() => setCurrentView('landing')}
-                  className="hover:text-white transition-colors uppercase font-mono"
+                  onClick={navigateToLanding}
+                  className="hover:text-[#111111] transition-colors cursor-pointer"
                 >
-                  Landing Page
+                  Product Tour
                 </button>
                 <button
-                  onClick={() => setActiveTab('help')}
-                  className="hover:text-white transition-colors uppercase font-mono"
+                  onClick={() => navigateToTab('help')}
+                  className="hover:text-[#111111] transition-colors cursor-pointer"
                 >
                   User Manual
                 </button>

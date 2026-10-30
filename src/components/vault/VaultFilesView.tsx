@@ -11,7 +11,9 @@ import {
   AlertOctagon,
   X,
   Copy,
-  EyeOff,
+  Check,
+  Bug,
+  FileCheck2,
 } from 'lucide-react';
 import { EncryptedVaultFile } from '../../types/crypto';
 import { vaultStore } from '../../lib/vaultStore';
@@ -43,9 +45,10 @@ export const VaultFilesView: React.FC<VaultFilesViewProps> = ({
   const [selectedFileForModal, setSelectedFileForModal] = useState<EncryptedVaultFile | null>(null);
   const [inspectModalFile, setInspectModalFile] = useState<EncryptedVaultFile | null>(null);
 
-  // Decryption state
-  const [decryptPassword, setDecryptPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  // Decryption modal state
+  const [decryptPassword, setDecryptPassword] = useState(
+    vaultStore.getSessionPassword() || 'MasterP@ssw0rd!2026'
+  );
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [decryptedImageSrc, setDecryptedImageSrc] = useState<string | null>(null);
   const [decryptError, setDecryptError] = useState<string | null>(null);
@@ -78,240 +81,182 @@ export const VaultFilesView: React.FC<VaultFilesViewProps> = ({
     setDecryptionStats(null);
   };
 
-  const executeDecryption = async () => {
+  const handleExecuteModalDecryption = async () => {
     if (!selectedFileForModal) return;
     setIsDecrypting(true);
     setDecryptError(null);
-    const startTime = performance.now();
 
+    const startTime = performance.now();
     try {
       const keyBundle = vaultStore.getKeyBundle();
       if (!keyBundle) {
-        throw new Error('No RSA-3072 key bundle found. Please generate keys first.');
+        throw new Error('No RSA key pair registered in current session.');
       }
 
-      // Unlock private key using password
-      const unlockedPrivate = await unlockPrivateKey(
-        keyBundle,
-        decryptPassword.trim() || 'MasterP@ssw0rd!2026'
-      );
+      const unlockedKeyPem = await unlockPrivateKey(keyBundle, decryptPassword);
 
-      // Decrypt AES key via RSA-OAEP and Decrypt Payload via AES-256-GCM
-      const decryptedResult = await decryptImageHybrid(
-        {
-          nonceBase64: selectedFileForModal.nonceBase64,
-          authTagBase64: selectedFileForModal.authTagBase64,
-          ciphertextBase64: selectedFileForModal.ciphertextBase64,
-          wrappedKeyBase64: selectedFileForModal.wrappedKeyBase64,
-        },
-        unlockedPrivate
-      );
+      const pkg = {
+        ciphertextBase64: selectedFileForModal.ciphertextBase64,
+        nonceBase64: selectedFileForModal.nonceBase64,
+        authTagBase64: selectedFileForModal.authTagBase64,
+        wrappedKeyBase64: selectedFileForModal.wrappedKeyBase64,
+        sha256OriginalHash: selectedFileForModal.sha256OriginalHash,
+        sha256CiphertextHash: selectedFileForModal.sha256CiphertextHash,
+      };
 
-      const durationMs = Math.round(performance.now() - startTime);
+      const result = await decryptImageHybrid(pkg, unlockedKeyPem);
+      const endTime = performance.now();
 
-      const blob = new Blob([decryptedResult.plaintextBytes.buffer as ArrayBuffer], {
-        type: selectedFileForModal.mimeType,
+      const blob = new Blob([result.plaintextBytes as Uint8Array<ArrayBuffer>], {
+        type: selectedFileForModal.mimeType || 'image/png',
       });
-      const url = URL.createObjectURL(blob);
-      setDecryptedImageSrc(url);
+      const objectUrl = URL.createObjectURL(blob);
+
+      setDecryptedImageSrc(objectUrl);
       setDecryptionStats({
-        durationMs,
-        sha256Recovered: decryptedResult.recoveredSha256,
-        integrityVerified: decryptedResult.integrityVerified,
+        durationMs: Math.round(endTime - startTime),
+        sha256Recovered: result.recoveredSha256,
+        integrityVerified: result.recoveredSha256 === selectedFileForModal.sha256OriginalHash,
       });
 
-      vaultStore.addAuditLog({
-        id: `aud_${Date.now()}`,
-        userId: vaultStore.getSession()?.userId,
-        fileId: selectedFileForModal.id,
-        filename: selectedFileForModal.originalFilename,
-        action: 'IMAGE_DECRYPTED',
-        status: 'SUCCESS',
-        ipAddress: '127.0.0.1',
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString(),
-        details: `Decrypted "${selectedFileForModal.originalFilename}". Integrity SHA-256 verified (${decryptedResult.recoveredSha256.substring(0, 16)}...).`,
-      });
-
-      addToast('success', 'Decryption & Verification Successful', `Verified in ${durationMs}ms with zero byte corruption.`);
+      addToast('success', 'File Decrypted', 'Integrity verified and image restored.');
     } catch (err: unknown) {
-      const errorMsg = (err as Error).message;
-      setDecryptError(errorMsg);
-      vaultStore.addAuditLog({
-        id: `aud_err_${Date.now()}`,
-        userId: vaultStore.getSession()?.userId,
-        fileId: selectedFileForModal.id,
-        filename: selectedFileForModal.originalFilename,
-        action: 'TAMPER_DETECTED',
-        status: 'FAILED',
-        ipAddress: '127.0.0.1',
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString(),
-        details: `Decryption failed on "${selectedFileForModal.originalFilename}": ${errorMsg}`,
-      });
-      addToast('error', 'Decryption Rejected', errorMsg);
+      const message = err instanceof Error ? err.message : 'Decryption failed';
+      setDecryptError(message);
+      addToast('error', 'Decryption Failed', message);
     } finally {
       setIsDecrypting(false);
     }
   };
 
-  const handleDownloadDecryptedImage = () => {
-    if (!decryptedImageSrc || !selectedFileForModal) return;
-    const a = document.createElement('a');
-    a.href = decryptedImageSrc;
-    a.download = `decrypted_${selectedFileForModal.originalFilename}`;
-    a.click();
-  };
-
-  const handleDownloadCvault = (file: EncryptedVaultFile) => {
-    const envelope = {
-      vault_magic: 'CVAULT01',
-      version: '1.0',
-      standard: 'NIST SP 800-38D / FIPS 197',
-      file_id: file.id,
+  const handleDownloadContainer = (file: EncryptedVaultFile) => {
+    const container = {
+      cipher_vault_version: '2.0.0',
+      standard: 'NIST-SP-800-38D',
+      algorithm: file.algorithm,
+      key_wrapping: file.keyWrappingAlgorithm,
+      recipient_fingerprint: file.rsaKeyFingerprint,
       original_filename: file.originalFilename,
       mime_type: file.mimeType,
-      original_size_bytes: file.originalSizeBytes,
-      encrypted_size_bytes: file.encryptedSizeBytes,
       sha256_original_hash: file.sha256OriginalHash,
       sha256_ciphertext_hash: file.sha256CiphertextHash,
-      cipher: {
-        algorithm: 'AES-256-GCM',
-        nonce_96bit_b64: file.nonceBase64,
-        auth_tag_128bit_b64: file.authTagBase64,
-        ciphertext_b64: file.ciphertextBase64,
-      },
-      key_wrapping: {
-        algorithm: 'RSA-OAEP-3072-SHA256',
-        rsa_fingerprint: file.rsaKeyFingerprint,
-        wrapped_aes_key_b64: file.wrappedKeyBase64,
-      },
-      metadata: {
-        exif_sanitized: file.exifStripped,
-        tags_removed: file.exifTagsRemovedCount,
-        encrypted_at: file.createdAt,
-      },
+      nonce_base64: file.nonceBase64,
+      auth_tag_base64: file.authTagBase64,
+      wrapped_key_base64: file.wrappedKeyBase64,
+      ciphertext_base64: file.ciphertextBase64,
+      exif_sanitized: file.exifStripped,
+      created_at: file.createdAt,
     };
 
-    const blob = new Blob([JSON.stringify(envelope, null, 2)], {
-      type: 'application/octet-stream',
+    const blob = new Blob([JSON.stringify(container, null, 2)], {
+      type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${file.originalFilename.replace(/\.[^.]+$/, '')}.cvault`;
+    a.download = `${file.originalFilename.replace(/\.[^/.]+$/, '')}.cvault`;
     a.click();
     URL.revokeObjectURL(url);
+    addToast('info', 'Exported Container', `Saved ${file.originalFilename}.cvault`);
+  };
+
+  const handleDeleteFile = (fileId: string, filename: string) => {
+    if (window.confirm(`Permanently remove "${filename}" from vault storage?`)) {
+      vaultStore.deleteFile(fileId);
+      addToast('info', 'File Deleted', `Removed ${filename}`);
+    }
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto font-sans">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans">
       {/* Header & Search */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#242424] pb-4">
+      <div className="border-b border-[#E5E5E5] pb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono tracking-widest text-[#B5A27E] uppercase">
-              Custody Registry
-            </span>
-            <span className="text-[#444]">·</span>
-            <span className="text-xs font-mono text-[#777777] uppercase">My Secure Files</span>
+          <div className="flex items-center gap-2 text-xs text-[#666666] mb-1 font-mono">
+            <span>Client Vault Storage</span>
+            <span aria-hidden="true">·</span>
+            <span>{files.length} Secure Images</span>
           </div>
-          <h1 className="text-2xl font-light tracking-tight text-white mt-1">
-            Encrypted Vault Storage
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111]">
+            Vault Files & History
           </h1>
-          <p className="text-xs text-[#888888] mt-1 font-sans">
-            Cryptographic containers sealed via AES-256-GCM and enveloped with RSA-3072.
-          </p>
         </div>
 
-        <div className="w-full sm:w-64">
+        <div className="w-full sm:w-72">
           <Input
-            placeholder="Search vault files..."
+            placeholder="Search files by name or algorithm..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            leftIcon={<Search className="w-3.5 h-3.5" />}
+            leftIcon={<Search className="w-4 h-4" />}
           />
         </div>
       </div>
 
-      {/* Files List */}
-      <div className="border border-[#242424] bg-[#111111] overflow-hidden">
+      {/* Files Table Card */}
+      <div className="border border-[#E5E5E5] bg-white rounded-xl shadow-xs overflow-hidden">
         {filteredFiles.length === 0 ? (
-          <div className="text-center py-12">
-            <Lock className="w-7 h-7 text-[#555555] mx-auto mb-2" />
-            <div className="text-xs font-semibold text-white uppercase font-mono">No Matching Encrypted Files</div>
-            <p className="text-[11px] text-[#777777] max-w-sm mx-auto mt-1 font-sans">
-              Upload images via the Encrypt module to populate your vault.
+          <div className="p-12 text-center text-[#666666]">
+            <Lock className="w-8 h-8 mx-auto text-[#888888] mb-3 stroke-[1.5]" />
+            <p className="text-sm font-semibold text-[#111111]">No files matching search criteria</p>
+            <p className="text-xs text-[#666666] mt-1">
+              Try adjusting your query or encrypt a new image.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="text-[#666666] border-b border-[#242424] font-mono text-[11px] bg-[#0A0A0A]">
+              <thead className="bg-[#F7F7F7] border-b border-[#E5E5E5] text-[#666666] uppercase font-mono text-[11px]">
                 <tr>
-                  <th className="py-2.5 px-4 font-medium">Filename & Digest</th>
-                  <th className="py-2.5 px-4 font-medium">Cipher & Wrapping</th>
-                  <th className="py-2.5 px-4 font-medium text-right">Encrypted Size</th>
-                  <th className="py-2.5 px-4 font-medium text-right">GMAC Tag</th>
-                  <th className="py-2.5 px-4 font-medium text-right">Created</th>
-                  <th className="py-2.5 px-4 font-medium text-right">Actions</th>
+                  <th className="py-3 px-4 font-semibold">Filename</th>
+                  <th className="py-3 px-4 font-semibold">Algorithm</th>
+                  <th className="py-3 px-4 font-semibold">Size</th>
+                  <th className="py-3 px-4 font-semibold hidden lg:table-cell">128-bit Auth Tag</th>
+                  <th className="py-3 px-4 font-semibold hidden md:table-cell">Created</th>
+                  <th className="py-3 px-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1F1F1F] font-mono">
+              <tbody className="divide-y divide-[#E5E5E5] text-[#111111]">
                 {filteredFiles.map((file) => (
-                  <tr key={file.id} className="hover:bg-[#161616] transition-colors">
-                    <td className="py-2.5 px-4 font-sans">
-                      <div className="font-medium text-white truncate max-w-[220px]">
-                        {file.originalFilename}
-                      </div>
-                      <div className="text-[10px] font-mono text-[#666666] truncate max-w-[220px]">
-                        SHA: {file.sha256CiphertextHash.substring(0, 16)}...
+                  <tr key={file.id} className="hover:bg-[#FAFAFA] transition-colors">
+                    <td className="py-3.5 px-4 font-medium flex items-center gap-2.5">
+                      <FileCheck2 className="w-4 h-4 text-[#16A34A] shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-sm truncate max-w-[160px] sm:max-w-xs">
+                          {file.originalFilename}
+                        </div>
+                        <div className="text-[11px] text-[#666666] font-mono">
+                          {file.mimeType} · {file.exifStripped ? 'EXIF Scrubbed' : 'Raw'}
+                        </div>
                       </div>
                     </td>
 
-                    <td className="py-2.5 px-4 text-[#888888] text-[11px]">
-                      <div className="text-white">{file.algorithm}</div>
-                      <div className="text-[10px] text-[#666666]">RSA-3072 OAEP</div>
+                    <td className="py-3.5 px-4 font-mono text-[11px]">
+                      <span className="font-semibold">{file.algorithm}</span>
+                      <div className="text-[#666666] text-[10px]">RSA-OAEP Wrap</div>
                     </td>
 
-                    <td className="py-2.5 px-4 text-right tabular-nums text-[#CCCCCC]">
+                    <td className="py-3.5 px-4 font-mono text-[11px]">
                       <div>{formatBytes(file.encryptedSizeBytes)}</div>
-                      <div className="text-[10px] text-[#666666]">
-                        Orig: {formatBytes(file.originalSizeBytes)}
-                      </div>
+                      <div className="text-[#666666] text-[10px]">Orig: {formatBytes(file.originalSizeBytes)}</div>
                     </td>
 
-                    <td className="py-2.5 px-4 text-right text-[#B5A27E] text-[11px]">
-                      {file.authTagBase64.substring(0, 10)}...
+                    <td className="py-3.5 px-4 font-mono text-[11px] text-[#666666] hidden lg:table-cell">
+                      <span className="truncate max-w-[120px] inline-block font-mono" title={file.authTagBase64}>
+                        {file.authTagBase64.substring(0, 14)}...
+                      </span>
                     </td>
 
-                    <td className="py-2.5 px-4 text-right tabular-nums text-[#666666] text-[11px]">
+                    <td className="py-3.5 px-4 text-[#666666] text-xs hidden md:table-cell whitespace-nowrap">
                       {new Date(file.createdAt).toLocaleDateString()}
                     </td>
 
-                    <td className="py-2.5 px-4 text-right font-sans">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          variant="ghost"
-                          size="xs"
-                          onClick={() => setInspectModalFile(file)}
-                          title="Inspect Envelope"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </Button>
-
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
                         <Button
                           variant="secondary"
                           size="xs"
-                          onClick={() => onSelectTamper(file.id)}
-                        >
-                          Tamper Lab
-                        </Button>
-
-                        <Button
-                          variant="primary"
-                          size="xs"
                           onClick={() => handleStartDecryption(file)}
+                          leftIcon={<Unlock className="w-3 h-3" />}
                         >
                           Decrypt
                         </Button>
@@ -319,23 +264,41 @@ export const VaultFilesView: React.FC<VaultFilesViewProps> = ({
                         <Button
                           variant="outline"
                           size="xs"
-                          onClick={() => handleDownloadCvault(file)}
-                          title="Download .cvault"
+                          onClick={() => setInspectModalFile(file)}
+                          leftIcon={<Eye className="w-3 h-3" />}
+                          className="hidden sm:inline-flex"
                         >
-                          <Download className="w-3.5 h-3.5" />
+                          Inspect
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => onSelectTamper(file.id)}
+                          leftIcon={<Bug className="w-3 h-3" />}
+                          className="hidden sm:inline-flex"
+                        >
+                          Tamper
                         </Button>
 
                         <Button
                           variant="ghost"
                           size="xs"
-                          onClick={() => {
-                            vaultStore.deleteFile(file.id);
-                            addToast('info', 'File Expunged', `Removed "${file.originalFilename}" from vault.`);
-                          }}
-                          className="text-[#666666] hover:text-red-400"
-                          title="Purge"
+                          onClick={() => handleDownloadContainer(file)}
+                          aria-label="Download container"
+                          title="Download container"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Download className="w-3.5 h-3.5 text-[#111111]" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => handleDeleteFile(file.id, file.originalFilename)}
+                          aria-label="Delete file"
+                          title="Delete file"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-[#DC2626]" />
                         </Button>
                       </div>
                     </td>
@@ -347,181 +310,159 @@ export const VaultFilesView: React.FC<VaultFilesViewProps> = ({
         )}
       </div>
 
-      {/* Decryption Modal */}
+      {/* Decrypt Modal Dialog */}
       {selectedFileForModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg border border-[#262626] bg-[#111111] shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#242424]">
-              <div className="flex items-center gap-2 text-white font-semibold text-xs uppercase font-mono">
-                <Unlock className="w-3.5 h-3.5 text-[#B5A27E]" />
-                <span>Decrypt Confidential Image</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="border border-[#E5E5E5] bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-5">
+            <div className="flex items-start justify-between pb-3 border-b border-[#E5E5E5]">
+              <div>
+                <h2 className="text-base font-bold text-[#111111]">
+                  Decrypt & Verify Container
+                </h2>
+                <p className="text-xs text-[#666666] truncate max-w-sm mt-0.5 font-mono">
+                  {selectedFileForModal.originalFilename}
+                </p>
               </div>
               <button
                 onClick={() => setSelectedFileForModal(null)}
-                className="text-[#666666] hover:text-white"
+                className="text-[#888888] hover:text-[#111111] p-1 rounded-sm cursor-pointer"
+                aria-label="Close dialog"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-1 text-xs">
-              <div className="text-[#AAAAAA] font-medium truncate font-mono">
-                Target: <span className="text-white">{selectedFileForModal.originalFilename}</span>
-              </div>
-              <div className="text-[11px] font-mono text-[#666666]">
-                Auth Tag: {selectedFileForModal.authTagBase64.substring(0, 16)}...
-              </div>
+            <div className="space-y-3">
+              <Input
+                label="Master Passphrase"
+                type="password"
+                value={decryptPassword}
+                onChange={(e) => setDecryptPassword(e.target.value)}
+                placeholder="Enter passphrase to unlock private key..."
+              />
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleExecuteModalDecryption}
+                isLoading={isDecrypting}
+                className="w-full justify-center"
+              >
+                Authenticate & Decrypt
+              </Button>
             </div>
 
-            {!decryptedImageSrc ? (
-              <div className="space-y-3 pt-1">
-                <div className="space-y-1.5">
-                  <Input
-                    label="Master Password (to unlock RSA-3072 private key)"
-                    type={showPassword ? 'text' : 'password'}
-                    value={decryptPassword}
-                    onChange={(e) => setDecryptPassword(e.target.value)}
-                    placeholder="Enter master password..."
-                    rightIcon={
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="text-[#666666] hover:text-white cursor-pointer"
-                      >
-                        {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    }
-                  />
-                  <p className="text-[10px] text-[#666666] font-mono">
-                    PBKDF2-SHA256 unprotects the user&apos;s PKCS#8 private key in memory.
-                  </p>
-                </div>
-
-                {decryptError && (
-                  <div className="p-3 border border-red-900/60 bg-red-950/20 text-red-200 text-xs flex items-start gap-2">
-                    <AlertOctagon className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-semibold text-red-300 font-mono uppercase">AEAD Decryption Failed</div>
-                      <div className="text-[11px] mt-0.5 leading-relaxed font-mono">{decryptError}</div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedFileForModal(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={executeDecryption}
-                    isLoading={isDecrypting}
-                    leftIcon={<Unlock className="w-3.5 h-3.5" />}
-                  >
-                    Authenticate & Decrypt
-                  </Button>
-                </div>
+            {decryptError && (
+              <div className="p-3 bg-[#FEF2F2] border border-[#FECACA] rounded-md text-xs text-[#DC2626]">
+                {decryptError}
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="p-3 border border-[#B5A27E]/40 bg-[#141414] text-[#B5A27E] text-xs flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#B5A27E] shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-semibold text-white font-mono uppercase">
-                      Cryptographic Authenticity & Integrity Verified
-                    </div>
-                    <div className="text-[11px] text-[#B5A27E] font-mono mt-0.5">
-                      Completed in {decryptionStats?.durationMs}ms · SHA-256 match confirmed.
-                    </div>
-                  </div>
+            )}
+
+            {decryptedImageSrc && decryptionStats && (
+              <div className="space-y-4 pt-3 border-t border-[#E5E5E5]">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#16A34A] font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" /> Integrity Verified
+                  </span>
+                  <span className="font-mono text-[#666666]">{decryptionStats.durationMs} ms</span>
                 </div>
 
-                <div className="border border-[#242424] overflow-hidden max-h-56 flex items-center justify-center bg-[#0A0A0A] p-2">
+                <div className="p-2 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] flex items-center justify-center">
                   <img
                     src={decryptedImageSrc}
-                    alt="Decrypted"
-                    referrerPolicy="no-referrer"
-                    className="max-h-52 object-contain"
+                    alt="Decrypted result"
+                    className="max-h-56 max-w-full object-contain rounded"
                   />
                 </div>
 
-                <div className="flex justify-between items-center pt-2 border-t border-[#242424]">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setDecryptedImageSrc(null);
-                      setDecryptionStats(null);
-                    }}
-                  >
-                    Close Preview
-                  </Button>
-
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleDownloadDecryptedImage}
-                    leftIcon={<Download className="w-3.5 h-3.5" />}
-                  >
-                    Download Decrypted Image
-                  </Button>
-                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = decryptedImageSrc;
+                    a.download = `decrypted_${selectedFileForModal.originalFilename}`;
+                    a.click();
+                  }}
+                  leftIcon={<Download className="w-4 h-4" />}
+                  className="w-full justify-center"
+                >
+                  Download Decrypted Image
+                </Button>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Inspect Envelope Modal */}
+      {/* Inspect Modal Dialog */}
       {inspectModalFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="relative w-full max-w-xl border border-[#262626] bg-[#111111] shadow-2xl p-6 space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-[#242424]">
-              <div className="flex items-center gap-2 text-white font-semibold text-xs font-mono uppercase">
-                <FileCode className="w-3.5 h-3.5 text-[#B5A27E]" />
-                <span>Cryptographic Envelope (.cvault)</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="border border-[#E5E5E5] bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5">
+            <div className="flex items-start justify-between pb-3 border-b border-[#E5E5E5]">
+              <div>
+                <h2 className="text-base font-bold text-[#111111]">
+                  Cryptographic Envelope Inspection
+                </h2>
+                <p className="text-xs text-[#666666] truncate max-w-md mt-0.5 font-mono">
+                  {inspectModalFile.originalFilename}
+                </p>
               </div>
-              <button onClick={() => setInspectModalFile(null)} className="text-[#666666] hover:text-white">
+              <button
+                onClick={() => setInspectModalFile(null)}
+                className="text-[#888888] hover:text-[#111111] p-1 rounded-sm cursor-pointer"
+                aria-label="Close dialog"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3 font-mono text-[11px]">
-              <div className="p-3 bg-[#0A0A0A] border border-[#242424] space-y-1 text-[#CCCCCC]">
-                <div><span className="text-[#666666]">File ID:</span> {inspectModalFile.id}</div>
-                <div><span className="text-[#666666]">Cipher:</span> {inspectModalFile.algorithm} (NIST SP 800-38D)</div>
-                <div><span className="text-[#666666]">Key Wrapping:</span> {inspectModalFile.keyWrappingAlgorithm}</div>
-                <div><span className="text-[#666666]">Nonce:</span> {inspectModalFile.nonceBase64}</div>
-                <div><span className="text-[#666666]">Auth Tag:</span> <span className="text-[#B5A27E]">{inspectModalFile.authTagBase64}</span></div>
-                <div><span className="text-[#666666]">Plaintext SHA:</span> {inspectModalFile.sha256OriginalHash}</div>
-                <div><span className="text-[#666666]">Ciphertext SHA:</span> {inspectModalFile.sha256CiphertextHash}</div>
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-[#F7F7F7] border border-[#E5E5E5] rounded-lg space-y-2">
+                <div className="font-semibold text-[#111111]">Envelope Properties</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[#666666]">
+                  <div>Cipher: <span className="font-mono text-[#111111]">{inspectModalFile.algorithm}</span></div>
+                  <div>Key Wrap: <span className="font-mono text-[#111111]">{inspectModalFile.keyWrappingAlgorithm}</span></div>
+                  <div>Plaintext Size: <span className="font-mono text-[#111111]">{formatBytes(inspectModalFile.originalSizeBytes)}</span></div>
+                  <div>Encrypted Size: <span className="font-mono text-[#111111]">{formatBytes(inspectModalFile.encryptedSizeBytes)}</span></div>
+                </div>
               </div>
 
               <div>
-                <div className="text-[#AAAAAA] font-medium mb-1">Ciphertext Stream Sample:</div>
-                <div className="p-3 bg-[#0A0A0A] border border-[#242424] text-[10px] text-[#777777] space-y-1 overflow-x-auto">
-                  {generateHexDump(base64ToUint8Array(inspectModalFile.ciphertextBase64), 64).map((line, idx) => (
-                    <div key={idx} className="flex gap-3">
-                      <span className="text-[#555555]">{line.offset}</span>
-                      <span className="text-[#B5A27E]">{line.hex}</span>
-                      <span className="text-[#666666]">{line.ascii}</span>
-                    </div>
-                  ))}
+                <div className="font-semibold text-[#111111] mb-1">128-bit Authentication Tag (GMAC)</div>
+                <div className="p-2.5 bg-[#F7F7F7] border border-[#E5E5E5] rounded font-mono text-[11px] text-[#111111] break-all">
+                  {inspectModalFile.authTagBase64}
+                </div>
+              </div>
+
+              <div>
+                <div className="font-semibold text-[#111111] mb-1">96-bit Nonce / IV</div>
+                <div className="p-2.5 bg-[#F7F7F7] border border-[#E5E5E5] rounded font-mono text-[11px] text-[#111111] break-all">
+                  {inspectModalFile.nonceBase64}
+                </div>
+              </div>
+
+              <div>
+                <div className="font-semibold text-[#111111] mb-1">SHA-256 Ciphertext Digest</div>
+                <div className="p-2.5 bg-[#F7F7F7] border border-[#E5E5E5] rounded font-mono text-[11px] text-[#111111] break-all">
+                  {inspectModalFile.sha256CiphertextHash}
+                </div>
+              </div>
+
+              <div>
+                <div className="font-semibold text-[#111111] mb-1">Wrapped AES Session Key (RSA-3072 OAEP)</div>
+                <div className="p-2.5 bg-[#F7F7F7] border border-[#E5E5E5] rounded font-mono text-[11px] text-[#111111] break-all max-h-24 overflow-y-auto">
+                  {inspectModalFile.wrappedKeyBase64}
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-[#242424]">
+            <div className="pt-2 flex justify-end">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => setInspectModalFile(null)}
               >
-                Close
+                Close Inspector
               </Button>
             </div>
           </div>

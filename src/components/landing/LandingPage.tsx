@@ -2,6 +2,7 @@ import React from 'react';
 import {
   ShieldCheck,
   Lock,
+  Unlock,
   KeyRound,
   FileSearch,
   Fingerprint,
@@ -13,7 +14,10 @@ import {
   Download,
   HelpCircle,
   FileCode,
+  Shield,
+  FileCheck2,
 } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -29,452 +33,316 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onExploreArchitecture,
 }) => {
   return (
-    <div className="min-h-screen bg-[#090909] text-[#EDEDED] font-sans selection:bg-[#B5A27E]/30 selection:text-[#B5A27E]">
+    <div className="min-h-screen bg-white text-[#111111] font-sans">
       {/* Navigation Bar */}
-      <header className="sticky top-0 z-40 w-full border-b border-[#242424] bg-[#090909]/95 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+      <header className="sticky top-0 z-40 w-full border-b border-[#E5E5E5] bg-white/95 backdrop-blur-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 border border-[#B5A27E] flex items-center justify-center">
-              <div className="w-2.5 h-2.5 bg-[#B5A27E]" />
+            <div className="w-8 h-8 rounded-md bg-[#111111] text-white flex items-center justify-center font-bold text-sm tracking-tighter shrink-0 shadow-xs">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                <circle cx="12" cy="16" r="1.5" fill="currentColor"></circle>
+              </svg>
             </div>
             <div>
-              <span className="font-semibold tracking-[0.2em] text-white text-base font-sans uppercase">
+              <span className="font-bold tracking-tight text-[#111111] text-base leading-none">
                 CipherVault
               </span>
-              <span className="block text-[10px] font-mono tracking-widest text-[#777777] uppercase">
-                Enterprise Cryptography
+              <span className="block text-[10px] text-[#666666] tracking-wider uppercase font-medium mt-0.5">
+                Cryptographic Platform
               </span>
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-mono tracking-wider text-[#A0A0A0]">
-            <a href="#capabilities" className="hover:text-white transition-colors">
+          <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-[#666666]">
+            <a href="#capabilities" className="hover:text-[#111111] transition-colors">
               Capabilities
             </a>
-            <a href="#how-it-works" className="hover:text-white transition-colors">
+            <a href="#how-it-works" className="hover:text-[#111111] transition-colors">
               How It Works
             </a>
-            <a href="#architecture" className="hover:text-white transition-colors">
+            <a href="#architecture" className="hover:text-[#111111] transition-colors">
               Hybrid Architecture
             </a>
             <button
               onClick={onOpenHelp}
-              className="hover:text-[#B5A27E] transition-colors flex items-center gap-1.5"
+              className="hover:text-[#111111] transition-colors flex items-center gap-1 cursor-pointer"
             >
               <HelpCircle className="w-3.5 h-3.5" />
               <span>User Manual</span>
             </button>
           </nav>
 
-          <div className="flex items-center gap-4">
-            <button
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onOpenAuth}
-              className="text-xs font-mono tracking-wider text-[#EDEDED] hover:text-[#B5A27E] px-3 py-2 transition-colors"
             >
-              Client Sign In
-            </button>
-            <button
+              Sign In
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={onGetStarted}
-              className="px-4 py-2 bg-[#B5A27E] text-[#090909] text-xs font-medium tracking-wider uppercase hover:bg-[#c2ad82] transition-colors flex items-center gap-2"
+              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
             >
-              <span>Access Vault</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+              Access Vault
+            </Button>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-20 border-b border-[#242424] overflow-hidden">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Institution Tag */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 border border-[#333333] bg-[#141414] text-[11px] font-mono text-[#B5A27E] tracking-widest uppercase mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#B5A27E] animate-pulse" />
-            NIST SP 800-38D · FIPS 197 Compliant Cryptographic Architecture
+      <section className="relative pt-16 sm:pt-24 pb-16 sm:pb-20 border-b border-[#E5E5E5] bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F7F7F7] border border-[#E5E5E5] rounded-full text-xs text-[#666666] font-medium">
+            <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
+            NIST SP 800-38D · FIPS 197 Cryptographic Architecture
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-tight text-white leading-tight">
-            Your Images.{' '}
-            <span className="block font-normal text-[#B5A27E] mt-2">
-              Protected by Advanced Cryptography.
-            </span>
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#111111] leading-[1.15]">
+            High-Assurance Image Encryption &amp; Decryption
           </h1>
 
-          <p className="mt-6 text-base sm:text-lg text-[#999999] max-w-2xl mx-auto font-normal leading-relaxed">
-            CipherVault enables defense, financial institutions, and privacy-conscious professionals
-            to securely encrypt, store, and decrypt confidential imagery through a unified zero-trust
-            cryptographic system.
+          <p className="text-base sm:text-lg text-[#666666] max-w-2xl mx-auto leading-relaxed">
+            Protect confidential images with client-side authenticated envelope cryptography. Zero unencrypted storage, automatic EXIF scrubbing, and 128-bit mathematical tamper rejection.
           </p>
 
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+            <Button
+              variant="primary"
+              size="lg"
               onClick={onGetStarted}
-              className="w-full sm:w-auto px-7 py-3.5 bg-[#B5A27E] text-[#090909] text-xs font-semibold tracking-widest uppercase hover:bg-[#c2ad82] transition-colors flex items-center justify-center gap-2"
+              rightIcon={<ArrowRight className="w-4 h-4" />}
             >
-              <span>Encrypt Image Container</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onExploreArchitecture}
-              className="w-full sm:w-auto px-7 py-3.5 border border-[#333333] bg-[#141414] text-white text-xs font-medium tracking-widest uppercase hover:border-[#B5A27E] hover:text-[#B5A27E] transition-colors"
+              Launch Vault Dashboard
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={onOpenHelp}
+              leftIcon={<BookOpenIcon className="w-4 h-4" />}
             >
-              Inspect Security Specs
-            </button>
+              Read Cryptographic Specs
+            </Button>
           </div>
 
-          {/* Core Security Assurance Badges */}
-          <div className="mt-16 pt-10 border-t border-[#1C1C1C] grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
-            <div className="border-l border-[#242424] pl-4">
-              <span className="text-[10px] font-mono tracking-widest text-[#777777] uppercase block">
-                Payload Cipher
+          {/* Architectural Diagram Box */}
+          <div className="mt-12 p-6 sm:p-8 bg-[#F7F7F7] border border-[#E5E5E5] rounded-xl text-left shadow-xs">
+            <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E5]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+                Cryptographic Pipeline Execution
               </span>
-              <span className="text-sm font-semibold text-white tracking-wide mt-1 block">
-                AES-256-GCM AEAD
+              <span className="text-xs text-[#16A34A] font-semibold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
+                Zero-Knowledge Local Execution
               </span>
-              <span className="text-[11px] text-[#777777] block mt-0.5">
-                Galois 128-bit tag
-              </span>
-            </div>
-            <div className="border-l border-[#242424] pl-4">
-              <span className="text-[10px] font-mono tracking-widest text-[#777777] uppercase block">
-                Key Wrapping
-              </span>
-              <span className="text-sm font-semibold text-white tracking-wide mt-1 block">
-                RSA-3072 OAEP
-              </span>
-              <span className="text-[11px] text-[#777777] block mt-0.5">
-                SHA-256 Mask Gen MGF1
-              </span>
-            </div>
-            <div className="border-l border-[#242424] pl-4">
-              <span className="text-[10px] font-mono tracking-widest text-[#777777] uppercase block">
-                Private Key Protection
-              </span>
-              <span className="text-sm font-semibold text-white tracking-wide mt-1 block">
-                PBKDF2 / Argon2id
-              </span>
-              <span className="text-[11px] text-[#777777] block mt-0.5">
-                600,000 salt iterations
-              </span>
-            </div>
-            <div className="border-l border-[#242424] pl-4">
-              <span className="text-[10px] font-mono tracking-widest text-[#777777] uppercase block">
-                Metadata Cleansing
-              </span>
-              <span className="text-sm font-semibold text-white tracking-wide mt-1 block">
-                Zero-EXIF Privacy
-              </span>
-              <span className="text-[11px] text-[#777777] block mt-0.5">
-                GPS & camera tags scrubbed
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Problem & Threat Matrix */}
-      <section className="py-20 border-b border-[#242424] bg-[#0D0D0D]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <span className="text-xs font-mono tracking-widest text-[#B5A27E] uppercase">
-              Threat Intelligence
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-light text-white tracking-tight mt-2">
-              Why Unencrypted Image Storage is a Catastrophic Exposure
-            </h2>
-            <p className="mt-3 text-sm text-[#999999] leading-relaxed">
-              Medical scans, architectural blueprints, trade secrets, and identity documents are routinely
-              stored in cloud buckets with basic server-side encryption that fails against insider threats,
-              subpoenas, and data tampering.
-            </p>
-          </div>
-
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="border border-[#242424] bg-[#111111] p-6">
-              <div className="w-10 h-10 border border-[#444] flex items-center justify-center text-white mb-4">
-                <AlertTriangle className="w-5 h-5 text-[#B5A27E]" />
-              </div>
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-                Passive EXIF Geolocation Leaks
-              </h3>
-              <p className="text-xs text-[#888888] mt-2 leading-relaxed">
-                Raw camera images contain embedded latitude, longitude, altitude, device serial numbers,
-                and timestamp metadata. CipherVault wipes all metadata before cryptographic hashing.
-              </p>
             </div>
 
-            <div className="border border-[#242424] bg-[#111111] p-6">
-              <div className="w-10 h-10 border border-[#444] flex items-center justify-center text-white mb-4">
-                <Lock className="w-5 h-5 text-[#B5A27E]" />
-              </div>
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-                Silent Bit-Flip Tampering
-              </h3>
-              <p className="text-xs text-[#888888] mt-2 leading-relaxed">
-                Legacy unauthenticated encryption modes (CBC/CTR) permit adversarial ciphertext tampering
-                without detection. Our AES-256-GCM AEAD detects single-bit alterations and aborts decryption.
-              </p>
-            </div>
-
-            <div className="border border-[#242424] bg-[#111111] p-6">
-              <div className="w-10 h-10 border border-[#444] flex items-center justify-center text-white mb-4">
-                <Fingerprint className="w-5 h-5 text-[#B5A27E]" />
-              </div>
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-                Centralized Custodian Vulnerability
-              </h3>
-              <p className="text-xs text-[#888888] mt-2 leading-relaxed">
-                If the server holds the plaintext decryption key, your data is never truly private.
-                CipherVault keeps RSA private keys strictly client-controlled and password-wrapped.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 8 Core Capabilities */}
-      <section id="capabilities" className="py-20 border-b border-[#242424] bg-[#090909]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto">
-            <span className="text-xs font-mono tracking-widest text-[#B5A27E] uppercase">
-              System Specification
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-light text-white tracking-tight mt-2">
-              Eight Cryptographic Defenses
-            </h2>
-            <p className="text-xs text-[#888888] mt-2">
-              Every stage of the file lifecycle adheres to rigorous cryptographic discipline.
-            </p>
-          </div>
-
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                icon: Layers,
-                title: 'Hybrid AES-256-GCM',
-                desc: 'Generates a unique 256-bit AES key and 96-bit CSPRNG IV per file to prevent keystream reuse.',
-              },
-              {
-                icon: KeyRound,
-                title: 'RSA-3072 OAEP Wrapping',
-                desc: 'Envelopes the ephemeral symmetric key with asymmetric RSA-3072 using SHA-256 padding.',
-              },
-              {
-                icon: ShieldCheck,
-                title: '128-Bit GMAC Integrity',
-                desc: 'Cryptographic authentication tag guarantees byte-for-byte fidelity and rejects tampered payloads.',
-              },
-              {
-                icon: FileSearch,
-                title: 'EXIF Sanitization Canvas',
-                desc: 'Decodes image raster data and writes to clean buffer, stripping device signatures and GPS coordinates.',
-              },
-              {
-                icon: FileCode,
-                title: 'Magic Byte Validation',
-                desc: 'Inspects binary file headers (e.g. 89 50 4E 47) to block polyglot malware and disguised binaries.',
-              },
-              {
-                icon: Cpu,
-                title: 'Scrypt / PBKDF2 Key Derivation',
-                desc: 'Private keys are never exposed in plaintext; they are password-wrapped with memory-hard KDFs.',
-              },
-              {
-                icon: Fingerprint,
-                title: 'Adversarial Tamper Lab',
-                desc: 'Interactive lab simulating active MITM byte-tampering and proving AEAD integrity enforcement.',
-              },
-              {
-                icon: Download,
-                title: 'Portable .cvault Envelopes',
-                desc: 'Self-contained encrypted containers with complete cryptographic manifests for offline recovery.',
-              },
-            ].map((cap, idx) => (
-              <div
-                key={idx}
-                className="p-5 border border-[#242424] bg-[#111111] hover:border-[#B5A27E]/60 transition-colors"
-              >
-                <div className="w-8 h-8 border border-[#333] flex items-center justify-center text-[#B5A27E] mb-4">
-                  <cap.icon className="w-4 h-4" />
-                </div>
-                <h3 className="text-xs font-semibold text-white tracking-wide uppercase">
-                  {cap.title}
-                </h3>
-                <p className="text-[12px] text-[#777777] mt-2 leading-relaxed font-sans">
-                  {cap.desc}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-5 text-xs">
+              <div className="p-4 bg-white border border-[#E5E5E5] rounded-lg space-y-1.5 shadow-xs">
+                <div className="font-mono text-[10px] text-[#888888] font-bold">STAGE 1</div>
+                <div className="font-bold text-[#111111]">Binary Sanitization</div>
+                <p className="text-[#666666] leading-relaxed">
+                  Checks authentic magic bytes and strips EXIF GPS &amp; device metadata.
                 </p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* 3-Step Lifecycle */}
-      <section id="how-it-works" className="py-20 border-b border-[#242424] bg-[#0D0D0D]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <span className="text-xs font-mono tracking-widest text-[#B5A27E] uppercase">
-              Cryptographic Workflow
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-light text-white tracking-tight mt-2">
-              Three-Step End-to-End Image Protection
-            </h2>
-            <p className="text-xs text-[#888888] mt-2">
-              Zero-knowledge client-side pipeline executing directly inside your browser.
-            </p>
-          </div>
-
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="border border-[#242424] bg-[#111111] p-6 relative">
-              <span className="text-3xl font-mono text-[#B5A27E]/40 font-bold block mb-4">
-                01
-              </span>
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-                Sanitize & Ingest
-              </h3>
-              <p className="text-xs text-[#888888] mt-2 leading-relaxed">
-                User selects confidential image. The client validates magic bytes to prevent polyglots,
-                wipes EXIF/GPS tags via canvas recreation, and calculates a SHA-256 pre-encryption digest.
-              </p>
-            </div>
-
-            <div className="border border-[#242424] bg-[#111111] p-6 relative">
-              <span className="text-3xl font-mono text-[#B5A27E]/40 font-bold block mb-4">
-                02
-              </span>
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-                Dual Cryptographic Lock
-              </h3>
-              <p className="text-xs text-[#888888] mt-2 leading-relaxed">
-                A 256-bit AES key is minted via WebCrypto CSPRNG. The image is encrypted under AES-GCM
-                producing ciphertext and a 128-bit authentication tag. The AES key is then wrapped under RSA-3072.
-              </p>
-            </div>
-
-            <div className="border border-[#242424] bg-[#111111] p-6 relative">
-              <span className="text-3xl font-mono text-[#B5A27E]/40 font-bold block mb-4">
-                03
-              </span>
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-                Verify & Decrypt
-              </h3>
-              <p className="text-xs text-[#888888] mt-2 leading-relaxed">
-                To decrypt, the user authenticates with their master passphrase to unwrap the RSA private key,
-                recovers the AES key, and verifies the GMAC tag. If intact, the original image is displayed.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Hybrid Architecture Diagram Section */}
-      <section id="architecture" className="py-20 border-b border-[#242424] bg-[#090909]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="text-xs font-mono tracking-widest text-[#B5A27E] uppercase">
-              Envelope Cryptography
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-light text-white tracking-tight mt-2">
-              Hybrid Cryptographic Architecture
-            </h2>
-            <p className="text-xs text-[#888888] mt-2">
-              Combining the high-throughput performance of symmetric AES with the key distribution security of asymmetric RSA.
-            </p>
-          </div>
-
-          <div className="border border-[#242424] bg-[#111111] p-8 max-w-4xl mx-auto font-mono text-xs">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-              <div className="space-y-4">
-                <div className="border border-[#262626] bg-[#161616] p-4">
-                  <div className="flex items-center justify-between text-[#B5A27E] mb-2 font-semibold">
-                    <span>1. DATA LAYER (Symmetric)</span>
-                    <span className="text-[10px] px-2 py-0.5 border border-[#B5A27E]/40">FAST</span>
-                  </div>
-                  <p className="text-[#888888] text-[11px] leading-relaxed">
-                    Plaintext Image Data + 256-bit AES Key + 96-bit Nonce → AES-256-GCM → Ciphertext + 128-bit Auth Tag
-                  </p>
-                </div>
-
-                <div className="border border-[#262626] bg-[#161616] p-4">
-                  <div className="flex items-center justify-between text-[#B5A27E] mb-2 font-semibold">
-                    <span>2. KEY LAYER (Asymmetric)</span>
-                    <span className="text-[10px] px-2 py-0.5 border border-[#B5A27E]/40">SECURE</span>
-                  </div>
-                  <p className="text-[#888888] text-[11px] leading-relaxed">
-                    256-bit AES Key + RSA-3072 Public Key → RSA-OAEP (SHA-256) → 384-Byte Wrapped AES Key
-                  </p>
-                </div>
-
-                <div className="border border-[#262626] bg-[#161616] p-4">
-                  <div className="flex items-center justify-between text-[#B5A27E] mb-2 font-semibold">
-                    <span>3. KEY PROTECTION LAYER</span>
-                    <span className="text-[10px] px-2 py-0.5 border border-[#B5A27E]/40">ZERO-KNOWLEDGE</span>
-                  </div>
-                  <p className="text-[#888888] text-[11px] leading-relaxed">
-                    Master Passphrase + Salt → PBKDF2 (600k iter) → Wrapped RSA Private Key
-                  </p>
-                </div>
+              <div className="p-4 bg-white border border-[#E5E5E5] rounded-lg space-y-1.5 shadow-xs">
+                <div className="font-mono text-[10px] text-[#888888] font-bold">STAGE 2</div>
+                <div className="font-bold text-[#111111]">AES-256-GCM AEAD</div>
+                <p className="text-[#666666] leading-relaxed">
+                  Encrypts image using ephemeral 256-bit symmetric key and 96-bit CSPRNG IV.
+                </p>
               </div>
 
-              <div className="border border-[#242424] bg-[#0A0A0A] p-5 space-y-3 text-[11px]">
-                <div className="text-[#B5A27E] font-semibold border-b border-[#242424] pb-2 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>CIPHERVAULT CONTAINER (.cvault)</span>
-                </div>
-                <div className="space-y-1.5 text-[#AAAAAA]">
-                  <div className="flex justify-between">
-                    <span className="text-[#777777]">Magic Header:</span>
-                    <span className="text-white">CVAULT_SEC_V1</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#777777]">Payload Cipher:</span>
-                    <span className="text-white">AES-256-GCM</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#777777]">Nonce (IV):</span>
-                    <span className="text-white">96-bit (12 bytes)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#777777]">Authentication Tag:</span>
-                    <span className="text-white">128-bit (16 bytes GMAC)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#777777]">Key Envelopment:</span>
-                    <span className="text-white">RSA-3072 OAEP-SHA256</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#777777]">Tamper Resistance:</span>
-                    <span className="text-[#B5A27E]">Strict Abort on Mismatch</span>
-                  </div>
-                </div>
+              <div className="p-4 bg-white border border-[#E5E5E5] rounded-lg space-y-1.5 shadow-xs">
+                <div className="font-mono text-[10px] text-[#888888] font-bold">STAGE 3</div>
+                <div className="font-bold text-[#111111]">RSA-3072 Key Wrap</div>
+                <p className="text-[#666666] leading-relaxed">
+                  Asymmetrically wraps the AES session key using OAEP with SHA-256 padding.
+                </p>
+              </div>
+
+              <div className="p-4 bg-white border border-[#E5E5E5] rounded-lg space-y-1.5 shadow-xs">
+                <div className="font-mono text-[10px] text-[#888888] font-bold">STAGE 4</div>
+                <div className="font-bold text-[#111111]">Container Export</div>
+                <p className="text-[#666666] leading-relaxed">
+                  Exports verifiable .cvault container with 128-bit Galois authentication tag.
+                </p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-[#242424] bg-[#090909] py-12 text-[#777777] font-mono text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border border-[#B5A27E] flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-[#B5A27E]" />
-            </div>
-            <span className="text-white tracking-widest uppercase">CipherVault</span>
-            <span>—</span>
-            <span>Secure Image Encryption & Decryption Platform</span>
+      {/* Core Capabilities */}
+      <section id="capabilities" className="py-16 sm:py-24 border-b border-[#E5E5E5] bg-[#F7F7F7]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111]">
+              Engineered for Zero-Trust Defense
+            </h2>
+            <p className="text-sm text-[#666666] leading-relaxed">
+              Every operation follows strict cryptographic boundaries to eliminate single points of failure.
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 text-[11px]">
-            <span>NIST SP 800-38D</span>
-            <span>FIPS 197</span>
-            <span>RFC 8017 PKCS#1</span>
-            <button onClick={onOpenHelp} className="hover:text-white transition-colors underline">
-              Help Center & Manual
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="border border-[#E5E5E5] bg-white rounded-xl p-6 sm:p-7 shadow-xs space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-[#111111] text-white flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-bold text-[#111111]">
+                Galois Authenticated Integrity
+              </h3>
+              <p className="text-xs sm:text-sm text-[#666666] leading-relaxed">
+                AES-GCM computes a 128-bit Galois Field tag over ciphertext and nonce. Any transmission bit corruption or tampering causes mathematical rejection.
+              </p>
+            </div>
+
+            <div className="border border-[#E5E5E5] bg-white rounded-xl p-6 sm:p-7 shadow-xs space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-[#111111] text-white flex items-center justify-center">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-bold text-[#111111]">
+                Memory-Hard Key Protection
+              </h3>
+              <p className="text-xs sm:text-sm text-[#666666] leading-relaxed">
+                User RSA private keys are wrapped at rest using keys derived via high-work-factor PBKDF2 and Scrypt algorithms, preventing offline brute-force extraction.
+              </p>
+            </div>
+
+            <div className="border border-[#E5E5E5] bg-white rounded-xl p-6 sm:p-7 shadow-xs space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-[#111111] text-white flex items-center justify-center">
+                <FileSearch className="w-5 h-5" />
+              </div>
+              <h3 className="text-base font-bold text-[#111111]">
+                Magic Byte Ingestion Filter
+              </h3>
+              <p className="text-xs sm:text-sm text-[#666666] leading-relaxed">
+                Validates authentic file signatures to prevent polyglot execution attacks, rejecting disguised Windows PE executables and ELF binaries.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="py-16 sm:py-24 border-b border-[#E5E5E5] bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111]">
+              How CipherVault Works
+            </h2>
+            <p className="text-sm text-[#666666]">
+              Simple workflow for users, rigorous cryptography under the hood.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="border border-[#E5E5E5] bg-[#F7F7F7] rounded-xl p-6 flex flex-col sm:flex-row items-start gap-5">
+              <div className="w-8 h-8 rounded-full bg-[#111111] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                1
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-[#111111]">Upload and Sanitize Image</h4>
+                <p className="text-xs sm:text-sm text-[#666666] leading-relaxed">
+                  Select your confidential image. EXIF metadata (camera serials, GPS coordinates, timestamps) is wiped completely via browser canvas rasterization.
+                </p>
+              </div>
+            </div>
+
+            <div className="border border-[#E5E5E5] bg-[#F7F7F7] rounded-xl p-6 flex flex-col sm:flex-row items-start gap-5">
+              <div className="w-8 h-8 rounded-full bg-[#111111] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                2
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-[#111111]">Hybrid Envelope Encryption</h4>
+                <p className="text-xs sm:text-sm text-[#666666] leading-relaxed">
+                  A unique 256-bit AES session key is generated with a 96-bit CSPRNG IV. The image is encrypted and the session key is wrapped under your RSA-3072 public key.
+                </p>
+              </div>
+            </div>
+
+            <div className="border border-[#E5E5E5] bg-[#F7F7F7] rounded-xl p-6 flex flex-col sm:flex-row items-start gap-5">
+              <div className="w-8 h-8 rounded-full bg-[#111111] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                3
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-[#111111]">Export Verifiable .cvault Container</h4>
+                <p className="text-xs sm:text-sm text-[#666666] leading-relaxed">
+                  Download the container or store it in your encrypted vault. Decryption requires your master passphrase and verifies byte-exact integrity.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Footer Section */}
+      <section className="py-16 sm:py-20 bg-[#F7F7F7] border-b border-[#E5E5E5] text-center">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111]">
+            Ready to Protect Your Sensitive Images?
+          </h2>
+          <p className="text-sm text-[#666666] max-w-xl mx-auto">
+            Experience private banking grade cryptography running directly in your browser.
+          </p>
+          <div className="pt-2">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={onGetStarted}
+              rightIcon={<ArrowRight className="w-4 h-4" />}
+            >
+              Open CipherVault Dashboard
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Minimalist Monochrome Footer */}
+      <footer className="py-8 bg-white text-xs text-[#666666]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-[#111111]">CipherVault</span>
+            <span aria-hidden="true">·</span>
+            <span>NIST FIPS 197 &amp; SP 800-38D Compliant</span>
+          </div>
+          <div className="flex items-center gap-6 text-[11px]">
+            <button onClick={onOpenHelp} className="hover:text-[#111111] cursor-pointer">
+              User Manual
             </button>
+            <button onClick={onGetStarted} className="hover:text-[#111111] cursor-pointer">
+              Dashboard
+            </button>
+            <span>RSA-3072 OAEP / AES-256-GCM</span>
           </div>
         </div>
       </footer>
     </div>
   );
 };
+
+function BookOpenIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  );
+}

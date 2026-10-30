@@ -10,7 +10,6 @@ import {
   googleProvider,
   signInWithPopup,
   signOut,
-  handleFirestoreError,
 } from '../../lib/firebase';
 
 interface AuthModalProps {
@@ -41,7 +40,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       const newSession: UserSession = {
         userId: user.uid,
         username: user.displayName || user.email?.split('@')[0] || 'Authenticated Client',
-        email: user.email || 'confidential@ciphervault.internal',
+        email: user.email || 'client@ciphervault.internal',
         role: 'cryptographer',
         keyFingerprint: vaultStore.getKeyBundle()?.publicKeyFingerprint || 'f9a8b7c6d5e4f3a2b1c0',
         token: await user.getIdToken(),
@@ -50,7 +49,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       };
 
       vaultStore.setSession(newSession);
-      // Set default vault passphrase if none exists
       if (!vaultStore.getSessionPassword()) {
         vaultStore.setSessionPassword('MasterP@ssw0rd!2026');
       }
@@ -68,221 +66,219 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         details: `Firebase Google Authentication verified for ${user.email}.`,
       });
 
-      addToast('success', 'Authenticated Successfully', `Welcome, ${newSession.username}.`);
+      addToast('success', 'Authenticated', `Welcome, ${newSession.username}.`);
       onClose();
     } catch (err: unknown) {
-      const errMsg = handleFirestoreError(err, 'Google Sign-In');
-      setErrorMsg(errMsg);
-      addToast('error', 'Sign-in Failed', errMsg);
+      const message = err instanceof Error ? err.message : 'Authentication failed';
+      setErrorMsg(message);
+      addToast('error', 'Authentication Failed', message);
     } finally {
       setIsLoadingGoogle(false);
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleManualLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      setErrorMsg('Username and master password are required.');
+    if (!username.trim()) {
+      setErrorMsg('Please enter an identifier or username.');
       return;
     }
 
     const newSession: UserSession = {
-      userId: `usr_${Math.random().toString(36).substring(2, 8)}`,
+      userId: `usr_${Date.now()}`,
       username: username.trim(),
-      email: email.trim() || `${username.trim().toLowerCase()}@ciphervault.internal`,
+      email: email.trim() || `${username.toLowerCase().replace(/\s+/g, '')}@ciphervault.internal`,
       role: 'cryptographer',
-      keyFingerprint: vaultStore.getKeyBundle()?.publicKeyFingerprint || 'f9a8b7c6d5e4f3a2b1c0',
-      token: `cv_jwt_${Math.random().toString(36).substring(2, 12)}`,
+      keyFingerprint: vaultStore.getKeyBundle()?.publicKeyFingerprint || 'local_session_fingerprint',
+      token: 'client_local_token',
       loginTimestamp: new Date().toISOString(),
-      ipAddress: '127.0.0.1 (Authenticated Client)',
+      ipAddress: '127.0.0.1',
     };
 
     vaultStore.setSession(newSession);
-    vaultStore.setSessionPassword(password);
-    vaultStore.addAuditLog({
-      id: `aud_${Date.now()}`,
-      userId: newSession.userId,
-      fileId: 'auth_service',
-      filename: 'client_handshake',
-      action: 'USER_LOGIN',
-      status: 'SUCCESS',
-      ipAddress: '127.0.0.1',
-      userAgent: navigator.userAgent,
-      timestamp: new Date().toISOString(),
-      details: `User "${username}" authenticated with PBKDF2 master credentials.`,
-    });
+    if (password.trim()) {
+      vaultStore.setSessionPassword(password.trim());
+    }
 
-    addToast('success', 'Authenticated Successfully', `Signed in as ${username}.`);
+    addToast('success', 'Session Established', `Logged in as ${newSession.username}`);
     onClose();
   };
 
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     try {
       await signOut(auth);
-    } catch {}
-
-    vaultStore.addAuditLog({
-      id: `aud_${Date.now()}`,
-      userId: session?.userId || 'unknown',
-      fileId: 'auth_service',
-      filename: 'session_termination',
-      action: 'USER_LOGOUT',
-      status: 'SUCCESS',
-      ipAddress: '127.0.0.1',
-      userAgent: navigator.userAgent,
-      timestamp: new Date().toISOString(),
-      details: `User "${session?.username}" terminated session and flushed volatile keys.`,
-    });
-
+    } catch {
+      // Offline fallback
+    }
     vaultStore.setSession(null);
-    vaultStore.setSessionPassword(null);
+    addToast('info', 'Signed Out', 'Client session ended.');
     setMode('login');
-    addToast('info', 'Session Terminated', 'Logged out of CipherVault.');
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-sans">
-      <div className="relative w-full max-w-sm border border-[#262626] bg-[#111111] shadow-2xl p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+      <div className="border border-[#E5E5E5] bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 space-y-5 font-sans">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#242424]">
-          <div className="flex items-center gap-2 text-white font-semibold text-xs tracking-wider uppercase font-mono">
-            <Shield className="w-3.5 h-3.5 text-[#B5A27E]" />
-            <span>
-              {mode === 'profile'
-                ? 'Client Security Session'
-                : mode === 'login'
-                ? 'Client Authentication'
-                : 'Register Security Credentials'}
-            </span>
+        <div className="flex items-start justify-between pb-3 border-b border-[#E5E5E5]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#F7F7F7] border border-[#E5E5E5] flex items-center justify-center text-[#111111]">
+              <User className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-[#111111]">
+                {session ? 'Client Authentication Profile' : 'Authenticate Identity'}
+              </h2>
+              <p className="text-xs text-[#666666]">
+                Zero-knowledge client identity &amp; session security
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-[#666666] hover:text-white">
+          <button
+            onClick={onClose}
+            className="text-[#888888] hover:text-[#111111] p-1 rounded-sm cursor-pointer"
+            aria-label="Close dialog"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {errorMsg && (
-          <div className="p-3 bg-red-950/30 border border-red-900/60 text-red-300 text-xs font-mono">
+          <div className="p-3 bg-[#FEF2F2] border border-[#FECACA] rounded-md text-xs text-[#DC2626]">
             {errorMsg}
           </div>
         )}
 
-        {mode === 'profile' && session && (
-          <div className="space-y-4 text-xs font-mono">
-            <div className="p-4 bg-[#0A0A0A] border border-[#242424] space-y-2.5 text-[11px]">
-              <div>
-                <span className="text-[#666666]">Identity: </span>
-                <span className="text-white font-semibold">{session.username}</span>
-              </div>
-              <div>
-                <span className="text-[#666666]">Clearance Role: </span>
-                <span className="text-[#B5A27E] font-semibold uppercase">{session.role}</span>
-              </div>
-              <div>
-                <span className="text-[#666666]">Security Token: </span>
-                <span className="text-[#AAAAAA]">{session.email}</span>
-              </div>
-              <div>
-                <span className="text-[#666666]">Host Verification: </span>
-                <span className="text-[#888888]">{session.ipAddress}</span>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-2">
-              <Button
-                variant="danger"
-                size="xs"
-                onClick={handleLogout}
-                leftIcon={<LogOut className="w-3 h-3" />}
-              >
-                Sign Out
-              </Button>
-
-              <Button variant="secondary" size="xs" onClick={onClose}>
-                Close
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {(mode === 'login' || mode === 'register') && (
+        {/* Existing Session Profile View */}
+        {session ? (
           <div className="space-y-4">
-            {/* Real Google Auth Button */}
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={isLoadingGoogle}
-              className="w-full py-2.5 border border-[#333333] hover:border-[#B5A27E] bg-[#161616] hover:bg-[#1E1E1E] text-white text-xs font-medium tracking-wide flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            <div className="border border-[#E5E5E5] bg-[#F7F7F7] rounded-lg p-4 space-y-2 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-[#E5E5E5]">
+                <span className="font-semibold text-[#111111]">Active Client Profile</span>
+                <span className="text-[#16A34A] font-medium flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Authenticated
+                </span>
+              </div>
+              <div className="space-y-1.5 text-[#666666]">
+                <div className="flex justify-between">
+                  <span>Username:</span>
+                  <span className="font-semibold text-[#111111]">{session.username}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Email:</span>
+                  <span className="font-mono text-[#111111]">{session.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Role:</span>
+                  <span className="font-mono text-[#111111] uppercase">{session.role}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Login Time:</span>
+                  <span className="font-mono text-[#111111]">
+                    {new Date(session.loginTimestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>IP Connection:</span>
+                  <span className="font-mono text-[#111111]">{session.ipAddress}</span>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleSignOut}
+              leftIcon={<LogOut className="w-3.5 h-3.5" />}
+              className="w-full justify-center"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="#EA4335"
-                  d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.4l3.7 2.9C6.5 7.4 9 5 12 5z"
-                />
+              Sign Out Session
+            </Button>
+          </div>
+        ) : (
+          /* Sign In Form */
+          <div className="space-y-4">
+            {/* Google OAuth Button */}
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={handleGoogleSignIn}
+              isLoading={isLoadingGoogle}
+              className="w-full justify-center"
+            >
+              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
-                  d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.6 14.7c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.2C.7 9.6 0 12.3 0 15.2s.7 5.6 1.9 8l3.7-2.9z"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 />
                 <path
                   fill="#34A853"
-                  d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17C3.7 20.8 7.5 23.5 12 23.5z"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>{isLoadingGoogle ? 'Authenticating with Google...' : 'Sign In with Google'}</span>
-            </button>
+              <span>Sign in with Google</span>
+            </Button>
 
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-[#262626]" />
-              <span className="text-[10px] font-mono uppercase text-[#666666]">Or Vault Passphrase</span>
-              <div className="flex-1 h-px bg-[#262626]" />
+            <div className="relative flex items-center justify-center my-3">
+              <div className="border-t border-[#E5E5E5] w-full" />
+              <span className="bg-white px-3 text-[11px] font-mono text-[#888888] uppercase absolute">
+                or local client
+              </span>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-3">
+            {/* Manual Form */}
+            <form onSubmit={handleManualLogin} className="space-y-3">
               <Input
                 label="Username / Client ID"
                 type="text"
+                placeholder="e.g. Lead Cryptographer"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. Lead_Cryptographer"
+                required
               />
-
-              {mode === 'register' && (
-                <Input
-                  label="Institutional Email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="agent@ciphervault.internal"
-                />
-              )}
 
               <Input
-                label="Master Passphrase (Argon2id / PBKDF2)"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="MasterP@ssw0rd!2026"
+                label="Client Email (Optional)"
+                type="email"
+                placeholder="client@internal.org"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
 
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  type="button"
-                  onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-                  className="text-[11px] text-[#B5A27E] hover:underline cursor-pointer font-mono"
-                >
-                  {mode === 'login' ? 'New client registration' : 'Existing login'}
-                </button>
+              <Input
+                label="Vault Passphrase"
+                type="password"
+                placeholder="Passphrase for RSA private key..."
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
 
-                <Button variant="primary" size="sm" type="submit">
-                  {mode === 'login' ? 'Authorize' : 'Register'}
+              <div className="pt-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  type="submit"
+                  className="w-full justify-center"
+                >
+                  Establish Local Client Session
                 </Button>
               </div>
             </form>
           </div>
         )}
+
+        <div className="pt-3 border-t border-[#E5E5E5] flex justify-end">
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            Close
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyRound, Download, RefreshCw, X, Lock, Copy, Check } from 'lucide-react';
+import { KeyRound, Download, RefreshCw, X, Lock, Copy, Check, ShieldCheck } from 'lucide-react';
 import { vaultStore } from '../../lib/vaultStore';
 import { generateAndProtectRsaKeyPair } from '../../lib/cryptoEngine';
 import { Button } from '../ui/Button';
@@ -27,7 +27,7 @@ export const KeyManagementModal: React.FC<KeyManagementModalProps> = ({ isOpen, 
     navigator.clipboard.writeText(keyBundle.publicKeyPem);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    addToast('info', 'Copied Public Key', 'SPKI PEM copied to clipboard.');
+    addToast('info', 'Public Key Copied', 'SPKI PEM copied to clipboard.');
   };
 
   const handleDownloadPublicKey = () => {
@@ -39,7 +39,7 @@ export const KeyManagementModal: React.FC<KeyManagementModalProps> = ({ isOpen, 
     a.download = `ciphervault_rsa3072_${keyBundle.publicKeyFingerprint.substring(0, 8)}.pub`;
     a.click();
     URL.revokeObjectURL(url);
-    addToast('info', 'Exported Public Key', 'Saved RSA-3072 .pub file.');
+    addToast('info', 'Public Key Exported', 'Saved RSA-3072 .pub file.');
   };
 
   const handleDownloadEncryptedBackup = () => {
@@ -66,165 +66,192 @@ export const KeyManagementModal: React.FC<KeyManagementModalProps> = ({ isOpen, 
     a.download = `ciphervault_backup_${keyBundle.publicKeyFingerprint.substring(0, 8)}.cvaultkey`;
     a.click();
     URL.revokeObjectURL(url);
-    addToast('info', 'Downloaded Key Backup', 'Saved encrypted .cvaultkey envelope.');
+    addToast('info', 'Key Backup Downloaded', 'Saved encrypted .cvaultkey envelope.');
   };
 
   const handleRotateKeyPair = async () => {
+    if (!rotationPassword.trim()) {
+      addToast('error', 'Passphrase Required', 'Please enter a master passphrase to protect the new private key.');
+      return;
+    }
+
     setIsRotating(true);
     try {
-      const pwd = rotationPassword.trim() || 'MasterP@ssw0rd!2026';
-      const newBundle = await generateAndProtectRsaKeyPair(pwd);
+      const newBundle = await generateAndProtectRsaKeyPair(rotationPassword.trim());
       vaultStore.setKeyBundle(newBundle);
+      vaultStore.setSessionPassword(rotationPassword.trim());
+
       vaultStore.addAuditLog({
-        id: `aud_${Date.now()}`,
+        id: `aud_rot_${Date.now()}`,
         userId: vaultStore.getSession()?.userId,
-        fileId: 'key_system',
-        filename: 'key_rotation',
-        action: 'KEY_ROTATION',
+        fileId: 'key_manager',
+        filename: 'rsa_keypair',
+        action: 'KEY_PAIR_ROTATION',
         status: 'SUCCESS',
         ipAddress: '127.0.0.1',
         userAgent: navigator.userAgent,
         timestamp: new Date().toISOString(),
-        details: `RSA-3072 key pair rotated. New fingerprint: ${newBundle.publicKeyFingerprint.substring(0, 16)}...`,
+        details: `Generated new RSA-3072 key pair. New fingerprint: ${newBundle.publicKeyFingerprint.substring(0, 16)}...`,
       });
+
+      addToast('success', 'Key Pair Rotated', 'New RSA-3072 key pair active and protected at rest.');
       setShowRotationForm(false);
       setRotationPassword('');
-      addToast('success', 'Key Pair Rotated', 'New 3072-bit RSA key pair active in session.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Rotation error';
+      addToast('error', 'Rotation Failed', message);
     } finally {
       setIsRotating(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-sans">
-      <div className="relative w-full max-w-xl border border-[#262626] bg-[#111111] shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#242424]">
-          <div className="flex items-center gap-2 text-white font-semibold text-xs font-mono uppercase">
-            <KeyRound className="w-3.5 h-3.5 text-[#B5A27E]" />
-            <span>Asymmetric Key Vault: RSA-3072</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+      <div className="border border-[#E5E5E5] bg-white rounded-xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 font-sans">
+        {/* Modal Header */}
+        <div className="flex items-start justify-between pb-4 border-b border-[#E5E5E5]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#F7F7F7] border border-[#E5E5E5] flex items-center justify-center text-[#111111]">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-[#111111]">
+                RSA-3072 Key Pair Management
+              </h2>
+              <p className="text-xs text-[#666666]">
+                Asymmetric key wrapping under NIST SP 800-57 guidelines
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-[#666666] hover:text-white">
-            <X className="w-4 h-4" />
+          <button
+            onClick={onClose}
+            className="text-[#888888] hover:text-[#111111] p-1 rounded-sm cursor-pointer"
+            aria-label="Close dialog"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-3 bg-[#0A0A0A] border border-[#222222] text-[11px] space-y-1 font-mono text-[#CCCCCC]">
-          <div className="font-semibold text-[#B5A27E] uppercase">Private Key Protection Invariant:</div>
-          <p className="text-[#888888] leading-relaxed text-[10px]">
-            The RSA-3072 private key never resides in plaintext. It is encrypted with 256-bit AES-GCM using a key derived via PBKDF2-SHA256 (600,000 rounds) with a 32-byte salt.
-          </p>
-        </div>
-
+        {/* Current Key Fingerprint Card */}
         {keyBundle ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-              <div className="p-2.5 bg-[#0A0A0A] border border-[#242424]">
-                <div className="text-[#666666] text-[10px] mb-0.5 uppercase">Modulus Length</div>
-                <div className="text-white font-semibold">3072 Bits</div>
+          <div className="space-y-4">
+            <div className="border border-[#E5E5E5] bg-[#F7F7F7] rounded-lg p-4 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-[#111111]">Public Key SHA-256 Fingerprint</span>
+                <span className="text-[#16A34A] font-medium flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> 3072-bit Active
+                </span>
               </div>
-              <div className="p-2.5 bg-[#0A0A0A] border border-[#242424]">
-                <div className="text-[#666666] text-[10px] mb-0.5 uppercase">Exponent (e)</div>
-                <div className="text-white font-semibold">65537</div>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[11px] font-mono text-[#888888] uppercase mb-1">
-                SHA-256 Public Fingerprint:
-              </div>
-              <div className="p-2 bg-[#0A0A0A] border border-[#242424] font-mono text-[11px] text-[#B5A27E] break-all select-all">
+              <div className="font-mono text-[11px] text-[#111111] bg-white border border-[#E5E5E5] p-2 rounded break-all">
                 {keyBundle.publicKeyFingerprint}
               </div>
+              <div className="text-[11px] text-[#666666]">
+                Private Key Protection: AES-256-GCM + Scrypt/PBKDF2 encrypted in client storage
+              </div>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between text-[11px] font-mono text-[#888888] uppercase mb-1">
-                <span>Public Key (SPKI PEM):</span>
+            {/* Public Key SPKI PEM Viewer */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-[#111111]">Public Key (SPKI PEM)</span>
                 <button
                   onClick={handleCopyPublicKey}
-                  className="flex items-center gap-1 text-[10px] text-[#B5A27E] hover:underline"
+                  className="text-[#666666] hover:text-[#111111] flex items-center gap-1 cursor-pointer"
                 >
-                  {copied ? <Check className="w-3 h-3 text-[#B5A27E]" /> : <Copy className="w-3 h-3" />}
-                  <span>{copied ? 'Copied' : 'Copy PEM'}</span>
+                  {copied ? <Check className="w-3.5 h-3.5 text-[#16A34A]" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span className="text-[11px]">Copy</span>
                 </button>
               </div>
-              <pre className="p-2.5 bg-[#0A0A0A] border border-[#242424] font-mono text-[10px] text-[#888888] max-h-28 overflow-y-auto leading-relaxed">
-                {keyBundle.publicKeyPem}
-              </pre>
+              <textarea
+                readOnly
+                rows={5}
+                value={keyBundle.publicKeyPem}
+                className="w-full bg-[#F7F7F7] border border-[#E5E5E5] rounded p-2.5 font-mono text-[11px] text-[#111111] resize-none outline-none"
+              />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#242424]">
+            {/* Key Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <Button
                 variant="outline"
-                size="xs"
+                size="sm"
                 onClick={handleDownloadPublicKey}
-                leftIcon={<Download className="w-3 h-3" />}
+                leftIcon={<Download className="w-3.5 h-3.5" />}
               >
-                Export .pub
+                Download .pub File
               </Button>
-
               <Button
                 variant="secondary"
-                size="xs"
+                size="sm"
                 onClick={handleDownloadEncryptedBackup}
-                leftIcon={<Lock className="w-3 h-3 text-[#B5A27E]" />}
+                leftIcon={<Download className="w-3.5 h-3.5" />}
               >
-                Download .cvaultkey Backup
-              </Button>
-
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() => setShowRotationForm(!showRotationForm)}
-                className="text-[#B5A27E] hover:text-white ml-auto"
-                leftIcon={<RefreshCw className="w-3 h-3" />}
-              >
-                Rotate Keys
+                Export Encrypted .cvaultkey
               </Button>
             </div>
-
-            {showRotationForm && (
-              <div className="p-3.5 bg-[#141414] border border-[#333333] space-y-2.5">
-                <div className="text-xs font-semibold text-white uppercase font-mono">
-                  Key Rotation Confirmation
-                </div>
-                <Input
-                  label="Master Password (to seal new private key):"
-                  type="password"
-                  placeholder="MasterP@ssw0rd!2026"
-                  value={rotationPassword}
-                  onChange={(e) => setRotationPassword(e.target.value)}
-                />
-                <div className="flex justify-end gap-2 pt-1">
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => setShowRotationForm(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="xs"
-                    onClick={handleRotateKeyPair}
-                    isLoading={isRotating}
-                  >
-                    Confirm Rotation
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         ) : (
-          <div className="text-center py-6 text-xs text-[#666666] font-mono">
-            No active RSA-3072 key pair in session.
+          <div className="p-6 text-center text-[#666666] text-xs">
+            No RSA key pair currently initialized.
           </div>
         )}
 
-        <div className="flex justify-end pt-2 border-t border-[#242424]">
+        {/* Rotate Key Pair Form */}
+        <div className="pt-4 border-t border-[#E5E5E5] space-y-4">
+          {!showRotationForm ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold text-[#111111]">Need a new key pair?</div>
+                <div className="text-[11px] text-[#666666]">
+                  Generating a new pair will not delete previously encrypted files.
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => setShowRotationForm(true)}
+                leftIcon={<RefreshCw className="w-3 h-3" />}
+              >
+                Rotate Key Pair
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3 p-4 bg-[#F7F7F7] border border-[#E5E5E5] rounded-lg">
+              <div className="text-xs font-semibold text-[#111111]">
+                Rotate RSA-3072 Key Pair
+              </div>
+              <Input
+                label="Master Passphrase (Protects Private Key)"
+                type="password"
+                value={rotationPassword}
+                onChange={(e) => setRotationPassword(e.target.value)}
+                placeholder="Enter strong passphrase..."
+              />
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => setShowRotationForm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="xs"
+                  onClick={handleRotateKeyPair}
+                  isLoading={isRotating}
+                >
+                  Generate New Keys
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="pt-3 border-t border-[#E5E5E5] flex justify-end">
           <Button variant="secondary" size="sm" onClick={onClose}>
-            Close
+            Done
           </Button>
         </div>
       </div>

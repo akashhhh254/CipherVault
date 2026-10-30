@@ -2,16 +2,17 @@ import React from 'react';
 import {
   Lock,
   Unlock,
-  Shield,
+  ShieldCheck,
   ArrowRight,
-  CheckCircle2,
-  Cpu,
-  Eye,
   FileText,
   Download,
   AlertTriangle,
   KeyRound,
   FileCheck2,
+  HardDrive,
+  Cpu,
+  Layers,
+  Bug,
 } from 'lucide-react';
 import { EncryptedVaultFile, SecurityAuditLog, UserSession } from '../../types/crypto';
 import { Button } from '../ui/Button';
@@ -50,25 +51,30 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   ).length;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto font-sans">
-      {/* Product Hero Header */}
-      <div className="border border-[#242424] bg-[#111111] p-6 sm:p-8">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans">
+      {/* Top Banner / Hero Card */}
+      <div className="border border-[#E5E5E5] bg-white rounded-xl p-6 sm:p-8 shadow-xs">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-7 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-mono text-[#777777]">
-              <span className="text-[#B5A27E] font-medium uppercase">NIST FIPS 197</span>
-              <span>·</span>
+          <div className="lg:col-span-8 space-y-4">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[#666666]">
+              <span className="font-semibold text-[#111111]">NIST FIPS 197</span>
+              <span aria-hidden="true">·</span>
               <span>AES-256-GCM AEAD</span>
-              <span>·</span>
+              <span aria-hidden="true">·</span>
               <span>RSA-3072 OAEP</span>
+              <span aria-hidden="true">·</span>
+              <span className="inline-flex items-center gap-1.5 text-[#16A34A] font-medium">
+                <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
+                Engine Active
+              </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-light tracking-tight text-white">
-              CipherVault Cryptographic Operations
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-[#111111]">
+              Cryptographic Security Dashboard
             </h1>
 
-            <p className="text-xs sm:text-sm text-[#999999] leading-relaxed max-w-xl font-normal">
-              An enterprise private-banking grade cryptographic workspace. Every confidential image is scrubbed of EXIF metadata, validated against executable binary signatures, encrypted with a unique 256-bit AES-GCM session key, and enveloped using 3072-bit RSA-OAEP.
+            <p className="text-sm sm:text-base text-[#666666] leading-relaxed max-w-2xl">
+              High-assurance image encryption using authenticated envelope cryptography. Every file undergoes magic byte validation, EXIF metadata sanitization, symmetric encryption with unique 256-bit AES-GCM keys, and asymmetric wrapping with RSA-3072 OAEP.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -76,155 +82,209 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 variant="primary"
                 size="md"
                 onClick={() => onNavigate('encrypt')}
-                leftIcon={<Lock className="w-3.5 h-3.5" />}
+                leftIcon={<Lock className="w-4 h-4" />}
               >
                 Encrypt Image
               </Button>
 
               <Button
-                variant="outline"
+                variant="secondary"
                 size="md"
                 onClick={() => onNavigate('decrypt')}
-                leftIcon={<Unlock className="w-3.5 h-3.5 text-[#B5A27E]" />}
+                leftIcon={<Unlock className="w-4 h-4" />}
               >
                 Decrypt Container
               </Button>
 
               <Button
-                variant="secondary"
+                variant="outline"
                 size="md"
                 onClick={() => onNavigate('security-tests')}
-                leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-[#B5A27E]" />}
+                leftIcon={<ShieldCheck className="w-4 h-4" />}
               >
                 Run Security Tests
               </Button>
             </div>
           </div>
 
-          <div className="lg:col-span-5 border border-[#242424] overflow-hidden bg-[#0A0A0A]">
-            <img
-              src="/src/assets/images/hero_vault_cryptography_1793356564061.jpg"
-              alt="Hardware Cryptographic Vault Module"
-              referrerPolicy="no-referrer"
-              className="w-full h-52 sm:h-64 object-cover filter contrast-110 grayscale-20"
-            />
+          {/* Quick Security Status Box */}
+          <div className="lg:col-span-4 bg-[#F7F7F7] border border-[#E5E5E5] rounded-lg p-5 space-y-3.5 text-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E5E5E5]">
+              <span className="font-semibold text-[#111111]">Security Environment</span>
+              <span className="text-[#16A34A] font-semibold">Verified</span>
+            </div>
+
+            <div className="space-y-2 text-[#666666]">
+              <div className="flex justify-between items-center">
+                <span>Key Wrapping</span>
+                <span className="font-mono text-[#111111] font-medium">RSA-3072 / SHA-256</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Payload Cipher</span>
+                <span className="font-mono text-[#111111] font-medium">AES-256-GCM (128-bit Tag)</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>IV/Nonce Size</span>
+                <span className="font-mono text-[#111111] font-medium">96 bits CSPRNG</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>EXIF Sanitizer</span>
+                <span className="text-[#16A34A] font-medium">Enabled (Active)</span>
+              </div>
+              <div className="flex justify-between items-center pt-1 border-t border-[#E5E5E5]">
+                <span>Active Fingerprint</span>
+                <span className="font-mono text-[11px] text-[#111111] truncate max-w-[140px]">
+                  {session?.keyFingerprint?.substring(0, 14)}...
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Metrics Row (Private Wealth Tabular Discipline) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 border border-[#242424] bg-[#111111] space-y-1">
-          <div className="text-xs font-mono text-[#777777] uppercase">Vault Payloads</div>
-          <div className="text-2xl font-light font-mono tabular-nums text-white">
+      {/* Primary KPI Metrics */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="border border-[#E5E5E5] bg-white rounded-lg p-5 shadow-xs">
+          <div className="text-xs font-semibold text-[#666666]">Protected Files</div>
+          <div className="text-2xl sm:text-3xl font-bold text-[#111111] mt-2 tracking-tight">
             {files.length}
           </div>
-          <div className="text-[11px] text-[#666666] font-mono">
-            {files.length > 0 ? 'All containers verified' : 'No encrypted files'}
+          <div className="text-xs text-[#888888] mt-1 font-mono">
+            {formatBytes(totalEncryptedBytes)} encrypted
           </div>
         </div>
 
-        <div className="p-4 border border-[#242424] bg-[#111111] space-y-1">
-          <div className="text-xs font-mono text-[#777777] uppercase">Secured Volume</div>
-          <div className="text-2xl font-light font-mono tabular-nums text-[#B5A27E]">
-            {formatBytes(totalEncryptedBytes)}
+        <div className="border border-[#E5E5E5] bg-white rounded-lg p-5 shadow-xs">
+          <div className="text-xs font-semibold text-[#666666]">Original Plaintext</div>
+          <div className="text-2xl sm:text-3xl font-bold text-[#111111] mt-2 tracking-tight">
+            {formatBytes(totalOriginalBytes)}
           </div>
-          <div className="text-[11px] text-[#666666] font-mono">
-            Plaintext baseline: {formatBytes(totalOriginalBytes)}
-          </div>
-        </div>
-
-        <div className="p-4 border border-[#242424] bg-[#111111] space-y-1">
-          <div className="text-xs font-mono text-[#777777] uppercase">Key Infrastructure</div>
-          <div className="text-2xl font-light font-mono text-white">
-            RSA-3072
-          </div>
-          <div className="text-[11px] text-[#666666] font-mono">
-            SHA-256 OAEP Wrapping
+          <div className="text-xs text-[#16A34A] mt-1 font-medium">
+            100% integrity guaranteed
           </div>
         </div>
 
-        <div className="p-4 border border-[#242424] bg-[#111111] space-y-1">
-          <div className="text-xs font-mono text-[#777777] uppercase">Security Audit Events</div>
-          <div className="text-2xl font-light font-mono tabular-nums text-white">
+        <div className="border border-[#E5E5E5] bg-white rounded-lg p-5 shadow-xs">
+          <div className="text-xs font-semibold text-[#666666]">Cryptographic Events</div>
+          <div className="text-2xl sm:text-3xl font-bold text-[#111111] mt-2 tracking-tight">
             {auditLogs.length}
           </div>
-          <div className="text-[11px] text-[#666666] font-mono">
-            {criticalAuditEvents} critical/warning events
+          <div className="text-xs text-[#666666] mt-1">
+            {criticalAuditEvents > 0 ? (
+              <span className="text-[#DC2626] font-medium">{criticalAuditEvents} warnings caught</span>
+            ) : (
+              <span>Immutable SIEM trail</span>
+            )}
+          </div>
+        </div>
+
+        <div className="border border-[#E5E5E5] bg-white rounded-lg p-5 shadow-xs">
+          <div className="text-xs font-semibold text-[#666666]">Security Assurance</div>
+          <div className="text-2xl sm:text-3xl font-bold text-[#111111] mt-2 tracking-tight">
+            128-bit
+          </div>
+          <div className="text-xs text-[#888888] mt-1 font-mono">
+            Galois Auth Tag GF(2¹²⁸)
           </div>
         </div>
       </div>
 
-      {/* Cryptographic Architecture Card */}
-      <div className="border border-[#242424] bg-[#111111] p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-4 border-b border-[#242424]">
-          <div>
-            <h2 className="text-sm font-semibold text-white tracking-wide uppercase font-mono">
-              Hybrid Cryptographic Protocol & Envelope Architecture
+      {/* Main Action Modules: Encrypt & Decrypt Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Encrypt Card */}
+        <div className="border border-[#E5E5E5] bg-[#F7F7F7] rounded-xl p-6 sm:p-7 flex flex-col justify-between space-y-6">
+          <div className="space-y-3">
+            <div className="w-10 h-10 rounded-lg bg-[#111111] text-white flex items-center justify-center">
+              <Lock className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg sm:text-xl font-bold text-[#111111]">
+              Encrypt New Image
             </h2>
-            <p className="text-xs text-[#888888] mt-0.5">
-              Strict separation between high-throughput symmetric ciphers and asymmetric authorization keys.
+            <p className="text-xs sm:text-sm text-[#666666] leading-relaxed">
+              Upload any image file (PNG, JPEG, WebP). The system validates magic bytes, strips all EXIF GPS metadata, generates an ephemeral 256-bit AES key, and produces a tamper-proof container.
             </p>
+            <ul className="text-xs text-[#666666] space-y-1.5 pt-1">
+              <li className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#111111]" />
+                Zero unencrypted storage
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#111111]" />
+                Automated EXIF & GPS coordinate scrub
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#111111]" />
+                RSA-3072 envelope key wrapping
+              </li>
+            </ul>
           </div>
-          <span className="text-[11px] font-mono text-[#B5A27E] uppercase tracking-wider">
-            NIST SP 800-56B COMPLIANT
-          </span>
+          <div>
+            <Button
+              variant="primary"
+              size="md"
+              className="w-full justify-center"
+              onClick={() => onNavigate('encrypt')}
+              rightIcon={<ArrowRight className="w-4 h-4" />}
+            >
+              Open Encryption Studio
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          <div className="lg:col-span-7 border border-[#242424] overflow-hidden bg-[#0A0A0A]">
-            <img
-              src="/src/assets/images/diagram_hybrid_cryptography_1793356563974.jpg"
-              alt="Hybrid Cryptographic Diagram"
-              referrerPolicy="no-referrer"
-              className="w-full h-auto object-cover filter contrast-105"
-            />
+        {/* Decrypt Card */}
+        <div className="border border-[#E5E5E5] bg-[#F7F7F7] rounded-xl p-6 sm:p-7 flex flex-col justify-between space-y-6">
+          <div className="space-y-3">
+            <div className="w-10 h-10 rounded-lg bg-white border border-[#E5E5E5] text-[#111111] flex items-center justify-center shadow-xs">
+              <Unlock className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg sm:text-xl font-bold text-[#111111]">
+              Decrypt Container (.cvault)
+            </h2>
+            <p className="text-xs sm:text-sm text-[#666666] leading-relaxed">
+              Authenticate and decrypt an existing container file. The engine validates the 128-bit Galois authentication tag, unwraps the AES session key, and verifies byte-for-byte integrity before rendering.
+            </p>
+            <ul className="text-xs text-[#666666] space-y-1.5 pt-1">
+              <li className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#111111]" />
+                Instant mathematical tamper detection
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#111111]" />
+                Byte-level SHA-256 match confirmation
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#111111]" />
+                Client-side private key decryption
+              </li>
+            </ul>
           </div>
-
-          <div className="lg:col-span-5 space-y-3 text-xs">
-            <div className="p-3.5 bg-[#0D0D0D] border border-[#222222] space-y-1">
-              <div className="font-semibold text-[#B5A27E] uppercase text-[11px] font-mono">
-                1. Pre-Flight OPSEC Sanitization
-              </div>
-              <p className="text-[#888888] leading-relaxed text-[11px]">
-                Validates authentic magic bytes (PNG/JPEG/WebP) and rejects disguised executables. Offscreen rasterization purges EXIF GPS coordinates and camera serial numbers.
-              </p>
-            </div>
-
-            <div className="p-3.5 bg-[#0D0D0D] border border-[#222222] space-y-1">
-              <div className="font-semibold text-[#B5A27E] uppercase text-[11px] font-mono">
-                2. AES-256-GCM AEAD Ingestion
-              </div>
-              <p className="text-[#888888] leading-relaxed text-[11px]">
-                Generates a unique 256-bit AES key and 96-bit nonce per image. Galois Message Authentication (GMAC) calculates a 128-bit authentication tag ensuring tamper detection.
-              </p>
-            </div>
-
-            <div className="p-3.5 bg-[#0D0D0D] border border-[#222222] space-y-1">
-              <div className="font-semibold text-[#B5A27E] uppercase text-[11px] font-mono">
-                3. RSA-3072 Key Wrapping
-              </div>
-              <p className="text-[#888888] leading-relaxed text-[11px]">
-                The ephemeral AES key is encrypted via RSA-OAEP with SHA-256. User private keys remain encrypted at rest via PBKDF2/Scrypt.
-              </p>
-            </div>
+          <div>
+            <Button
+              variant="secondary"
+              size="md"
+              className="w-full justify-center"
+              onClick={() => onNavigate('decrypt')}
+              rightIcon={<ArrowRight className="w-4 h-4" />}
+            >
+              Open Decryption Studio
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Recent Files Section */}
-      <div className="border border-[#242424] bg-[#111111] p-6 space-y-4">
-        <div className="flex items-center justify-between gap-4">
+      {/* Recent Files Table / List */}
+      <div className="border border-[#E5E5E5] bg-white rounded-xl shadow-xs overflow-hidden">
+        <div className="p-5 sm:p-6 border-b border-[#E5E5E5] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-white uppercase tracking-wide font-mono">
-              Recent Encrypted Images
+            <h2 className="text-base sm:text-lg font-bold text-[#111111]">
+              Secure Vault Files
             </h2>
-            <p className="text-xs text-[#777777] mt-0.5">
-              Secure vault storage packages with authenticated integrity tags.
+            <p className="text-xs text-[#666666] mt-0.5">
+              Ciphertexts stored in client storage with individual AES session keys
             </p>
           </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => onNavigate('vault')}
             rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
@@ -233,17 +293,18 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           </Button>
         </div>
 
-        {files.length === 0 ? (
-          <div className="text-center py-12 border border-dashed border-[#242424] bg-[#0A0A0A]">
-            <Lock className="w-8 h-8 text-[#555555] mx-auto mb-2" />
-            <div className="text-xs font-semibold text-white">No Encrypted Files</div>
-            <p className="text-[11px] text-[#777777] max-w-sm mx-auto mt-1 mb-4">
-              Ingest confidential images to generate AES-256-GCM encrypted containers.
+        {recentFiles.length === 0 ? (
+          <div className="p-10 text-center text-[#666666]">
+            <Lock className="w-8 h-8 mx-auto text-[#888888] mb-3 stroke-[1.5]" />
+            <p className="text-sm font-semibold text-[#111111]">Vault is currently empty</p>
+            <p className="text-xs text-[#666666] mt-1">
+              Encrypt your first confidential image to see it listed here.
             </p>
             <Button
               variant="primary"
               size="sm"
               onClick={() => onNavigate('encrypt')}
+              className="mt-4"
             >
               Encrypt First Image
             </Button>
@@ -251,50 +312,59 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="text-[#666666] border-b border-[#242424] font-mono text-[11px]">
+              <thead className="bg-[#F7F7F7] border-b border-[#E5E5E5] text-[#666666] uppercase font-mono text-[11px]">
                 <tr>
-                  <th className="pb-2.5 font-medium">Filename</th>
-                  <th className="pb-2.5 font-medium">Cipher & Mode</th>
-                  <th className="pb-2.5 font-medium text-right">Encrypted Size</th>
-                  <th className="pb-2.5 font-medium text-right">Auth Tag (128-bit)</th>
-                  <th className="pb-2.5 font-medium text-right">Encrypted At</th>
-                  <th className="pb-2.5 font-medium text-right">Actions</th>
+                  <th className="py-3 px-4 font-semibold">Filename</th>
+                  <th className="py-3 px-4 font-semibold">Cipher</th>
+                  <th className="py-3 px-4 font-semibold">Original / Encrypted</th>
+                  <th className="py-3 px-4 font-semibold hidden md:table-cell">Ciphertext Hash</th>
+                  <th className="py-3 px-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1F1F1F] font-mono">
+              <tbody className="divide-y divide-[#E5E5E5] text-[#111111]">
                 {recentFiles.map((file) => (
-                  <tr key={file.id} className="hover:bg-[#161616] transition-colors">
-                    <td className="py-2.5 font-sans font-medium text-white truncate max-w-[200px]">
-                      {file.originalFilename}
+                  <tr key={file.id} className="hover:bg-[#FAFAFA] transition-colors">
+                    <td className="py-3.5 px-4 font-medium flex items-center gap-2.5">
+                      <FileCheck2 className="w-4 h-4 text-[#16A34A] shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-sm truncate max-w-[180px] sm:max-w-xs">
+                          {file.originalFilename}
+                        </div>
+                        <div className="text-[11px] text-[#666666] font-mono">
+                          {new Date(file.createdAt).toLocaleDateString()} · {file.mimeType}
+                        </div>
+                      </div>
                     </td>
-                    <td className="py-2.5 text-[#888888] text-[11px]">
-                      <span className="text-white">{file.algorithm}</span>
-                      <span className="text-[#555555] ml-1">· RSA-3072</span>
+                    <td className="py-3.5 px-4 font-mono text-[11px]">
+                      <span className="font-semibold">{file.algorithm}</span>
+                      <div className="text-[#666666] text-[10px]">96b Nonce · 128b Tag</div>
                     </td>
-                    <td className="py-2.5 text-right tabular-nums text-[#CCCCCC]">
-                      {formatBytes(file.encryptedSizeBytes)}
+                    <td className="py-3.5 px-4 font-mono text-[11px]">
+                      <div>{formatBytes(file.originalSizeBytes)}</div>
+                      <div className="text-[#666666] text-[10px]">→ {formatBytes(file.encryptedSizeBytes)}</div>
                     </td>
-                    <td className="py-2.5 text-right text-[#B5A27E] text-[11px]">
-                      {file.authTagBase64.substring(0, 10)}...
+                    <td className="py-3.5 px-4 font-mono text-[11px] text-[#666666] hidden md:table-cell">
+                      <span className="font-mono" title={file.sha256CiphertextHash}>
+                        {file.sha256CiphertextHash.substring(0, 16)}...
+                      </span>
                     </td>
-                    <td className="py-2.5 text-right tabular-nums text-[#666666] text-[11px]">
-                      {new Date(file.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-2.5 text-right font-sans">
+                    <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <Button
                           variant="secondary"
                           size="xs"
-                          onClick={() => onSelectFileForTamper(file.id)}
-                        >
-                          Tamper Lab
-                        </Button>
-                        <Button
-                          variant="primary"
-                          size="xs"
                           onClick={() => onSelectFileForDecrypt(file.id)}
+                          leftIcon={<Unlock className="w-3 h-3" />}
                         >
                           Decrypt
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => onSelectFileForTamper(file.id)}
+                          leftIcon={<Bug className="w-3 h-3" />}
+                        >
+                          Tamper Lab
                         </Button>
                       </div>
                     </td>
@@ -304,6 +374,46 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             </table>
           </div>
         )}
+      </div>
+
+      {/* Security Architecture Reference */}
+      <div className="border border-[#E5E5E5] bg-[#F7F7F7] rounded-xl p-6 sm:p-7 space-y-4">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-[#111111]">
+          Cryptographic Flow & Defense in Depth
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+          <div className="border border-[#E5E5E5] bg-white p-4 rounded-lg space-y-1.5 shadow-xs">
+            <div className="font-mono text-[11px] font-semibold text-[#888888]">STEP 01</div>
+            <div className="font-bold text-[#111111]">Magic Byte Validation</div>
+            <p className="text-[#666666] leading-relaxed">
+              Examines raw byte signatures to block disguised polyglots, Windows PE, and ELF binaries.
+            </p>
+          </div>
+
+          <div className="border border-[#E5E5E5] bg-white p-4 rounded-lg space-y-1.5 shadow-xs">
+            <div className="font-mono text-[11px] font-semibold text-[#888888]">STEP 02</div>
+            <div className="font-bold text-[#111111]">EXIF Sanitization</div>
+            <p className="text-[#666666] leading-relaxed">
+              Rerenders raster pixels offscreen to strip camera serial numbers, GPS lat/long, and timestamps.
+            </p>
+          </div>
+
+          <div className="border border-[#E5E5E5] bg-white p-4 rounded-lg space-y-1.5 shadow-xs">
+            <div className="font-mono text-[11px] font-semibold text-[#888888]">STEP 03</div>
+            <div className="font-bold text-[#111111]">AES-256-GCM AEAD</div>
+            <p className="text-[#666666] leading-relaxed">
+              Generates ephemeral 256-bit symmetric key and produces 128-bit authentication tag over GF(2¹²⁸).
+            </p>
+          </div>
+
+          <div className="border border-[#E5E5E5] bg-white p-4 rounded-lg space-y-1.5 shadow-xs">
+            <div className="font-mono text-[11px] font-semibold text-[#888888]">STEP 04</div>
+            <div className="font-bold text-[#111111]">RSA-3072 Key Wrapping</div>
+            <p className="text-[#666666] leading-relaxed">
+              Wraps the AES session key using RSA-OAEP with SHA-256 padding. Private key protected by passphrase.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

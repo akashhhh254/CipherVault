@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Search, Download, AlertTriangle, CheckCircle2, AlertOctagon, FileText, ChevronRight } from 'lucide-react';
+import {
+  Search,
+  Download,
+  AlertTriangle,
+  CheckCircle2,
+  AlertOctagon,
+  FileText,
+  ChevronRight,
+  X,
+} from 'lucide-react';
 import { SecurityAuditLog } from '../../types/crypto';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -60,22 +69,22 @@ export const AuditLogsView: React.FC<AuditLogsViewProps> = ({ logs }) => {
   return (
     <div className="space-y-6 max-w-5xl mx-auto font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#242424] pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#E5E5E5] pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-[#B5A27E] uppercase mb-1">
-            <span>Immutable Audit Trail</span>
-            <span>·</span>
-            <span>SIEM Compatible</span>
+          <div className="flex items-center gap-2 text-xs font-mono text-[#666666] mb-1">
+            <span>Security Activity</span>
+            <span aria-hidden="true">·</span>
+            <span>SIEM Compatible Trail</span>
           </div>
-          <h1 className="text-2xl font-light tracking-tight text-white mb-1">
-            Security Monitoring & Audit Logs
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111]">
+            Audit Logs
           </h1>
-          <p className="text-xs text-[#888888]">
-            Chronological ledger recording cryptographic operations, key authorizations, and adversarial tamper detections.
+          <p className="text-sm text-[#666666] mt-1">
+            Immutable chronological record of all cryptographic operations, key handshakes, and tamper events.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
@@ -85,7 +94,7 @@ export const AuditLogsView: React.FC<AuditLogsViewProps> = ({ logs }) => {
             Export CSV
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={handleExportJson}
             leftIcon={<Download className="w-3.5 h-3.5" />}
@@ -96,26 +105,25 @@ export const AuditLogsView: React.FC<AuditLogsViewProps> = ({ logs }) => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-3.5 border border-[#242424] bg-[#111111] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex-1">
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex-1 w-full">
           <Input
-            placeholder="Search by event, IP, or details..."
+            placeholder="Search audit trail by event type, IP, or details..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            leftIcon={<Search className="w-3.5 h-3.5" />}
+            leftIcon={<Search className="w-4 h-4" />}
           />
         </div>
 
-        {/* Severity Filter Tabs */}
-        <div className="flex items-center gap-1 p-0.5 bg-[#0A0A0A] border border-[#242424] font-mono text-[11px] shrink-0">
+        <div className="flex items-center gap-1 bg-[#F7F7F7] border border-[#E5E5E5] p-1 rounded-lg w-full sm:w-auto overflow-x-auto text-xs">
           {(['ALL', 'INFO', 'WARNING', 'CRITICAL'] as const).map((sev) => (
             <button
               key={sev}
               onClick={() => setSelectedSeverity(sev)}
-              className={`px-3 py-1 transition-colors cursor-pointer uppercase ${
+              className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer select-none whitespace-nowrap ${
                 selectedSeverity === sev
-                  ? 'bg-[#222222] text-[#B5A27E] font-medium'
-                  : 'text-[#666666] hover:text-white'
+                  ? 'bg-white text-[#111111] font-semibold shadow-xs'
+                  : 'text-[#666666] hover:text-[#111111]'
               }`}
             >
               {sev}
@@ -125,98 +133,104 @@ export const AuditLogsView: React.FC<AuditLogsViewProps> = ({ logs }) => {
       </div>
 
       {/* Logs Table */}
-      <div className="border border-[#242424] bg-[#111111] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="text-[#666666] border-b border-[#242424] font-mono text-[11px] bg-[#0A0A0A]">
-              <tr>
-                <th className="py-2.5 px-4 font-medium">Timestamp (UTC)</th>
-                <th className="py-2.5 px-4 font-medium">Severity</th>
-                <th className="py-2.5 px-4 font-medium">Event Type</th>
-                <th className="py-2.5 px-4 font-medium">Actor & IP</th>
-                <th className="py-2.5 px-4 font-medium">Details</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1F1F1F] font-mono text-[11px]">
-              {filteredLogs.length === 0 ? (
+      <div className="border border-[#E5E5E5] bg-white rounded-xl shadow-xs overflow-hidden">
+        {filteredLogs.length === 0 ? (
+          <div className="p-12 text-center text-[#666666]">
+            <FileText className="w-8 h-8 mx-auto text-[#888888] mb-3" />
+            <p className="text-sm font-semibold text-[#111111]">No audit events found</p>
+            <p className="text-xs text-[#666666] mt-1">Try resetting the severity or search term filter.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#F7F7F7] border-b border-[#E5E5E5] text-[#666666] uppercase font-mono text-[11px]">
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-[#666666] font-sans">
-                    No security events match the current filter criteria.
-                  </td>
+                  <th className="py-3 px-4 font-semibold">Timestamp</th>
+                  <th className="py-3 px-4 font-semibold">Severity</th>
+                  <th className="py-3 px-4 font-semibold">Event Type</th>
+                  <th className="py-3 px-4 font-semibold">IP Address</th>
+                  <th className="py-3 px-4 font-semibold">Event Details</th>
+                  <th className="py-3 px-4 font-semibold text-right">Inspect</th>
                 </tr>
-              ) : (
-                filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-[#161616] transition-colors">
-                    <td className="py-2.5 px-4 tabular-nums text-[#888888] whitespace-nowrap text-[10px]">
-                      {new Date(log.timestamp).toISOString().replace('T', ' ').slice(0, 19)}
+              </thead>
+              <tbody className="divide-y divide-[#E5E5E5] text-[#111111]">
+                {filteredLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-[#FAFAFA] transition-colors">
+                    <td className="py-3 px-4 font-mono text-[11px] text-[#666666] whitespace-nowrap">
+                      {new Date(log.timestamp).toLocaleTimeString()}
                     </td>
 
-                    <td className="py-2.5 px-4 whitespace-nowrap">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center gap-1 font-semibold text-[10px] ${
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
                           log.severity === 'CRITICAL'
-                            ? 'text-red-400'
+                            ? 'bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]'
                             : log.severity === 'WARNING'
-                            ? 'text-amber-400'
-                            : 'text-[#B5A27E]'
+                            ? 'bg-[#FFFBEB] text-[#D97706] border border-[#FEF08A]'
+                            : 'bg-[#F7F7F7] text-[#111111] border border-[#E5E5E5]'
                         }`}
                       >
-                        {log.severity === 'CRITICAL' && <AlertOctagon className="w-3 h-3" />}
-                        {log.severity === 'WARNING' && <AlertTriangle className="w-3 h-3" />}
-                        {log.severity === 'INFO' && <CheckCircle2 className="w-3 h-3" />}
-                        <span>{log.severity}</span>
+                        {log.severity}
                       </span>
                     </td>
 
-                    <td className="py-2.5 px-4 text-white font-medium whitespace-nowrap">
+                    <td className="py-3 px-4 font-mono text-[11px] font-semibold">
                       {log.eventType}
                     </td>
 
-                    <td className="py-2.5 px-4 text-[#888888] whitespace-nowrap text-[10px]">
-                      <div className="text-white">{log.username || 'System'}</div>
-                      <div className="text-[#555555]">{log.ipAddress}</div>
+                    <td className="py-3 px-4 font-mono text-[11px] text-[#666666] whitespace-nowrap">
+                      {log.ipAddress}
                     </td>
 
-                    <td className="py-2.5 px-4 font-sans text-[#AAAAAA] max-w-sm">
-                      <div className="truncate text-xs">{log.details}</div>
-                      {log.metadata && (
-                        <button
-                          onClick={() => setActiveJsonModal(log)}
-                          className="text-[10px] font-mono text-[#B5A27E] hover:underline mt-0.5 flex items-center gap-0.5 cursor-pointer"
-                        >
-                          <span>Inspect metadata</span>
-                          <ChevronRight className="w-2.5 h-2.5" />
-                        </button>
-                      )}
+                    <td className="py-3 px-4 text-[#666666] max-w-xs truncate">
+                      {log.details}
+                    </td>
+
+                    <td className="py-3 px-4 text-right">
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => setActiveJsonModal(log)}
+                      >
+                        Raw
+                      </Button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* JSON Metadata Inspector Modal */}
+      {/* Raw Event Modal */}
       {activeJsonModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="relative w-full max-w-md border border-[#262626] bg-[#111111] shadow-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-[#242424]">
-              <div className="text-xs font-semibold text-white uppercase font-mono">Event Telemetry Payload</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="border border-[#E5E5E5] bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 space-y-4">
+            <div className="flex items-start justify-between pb-3 border-b border-[#E5E5E5]">
+              <div>
+                <h2 className="text-base font-bold text-[#111111]">
+                  SIEM Audit Event Record
+                </h2>
+                <p className="text-xs text-[#666666] font-mono mt-0.5">{activeJsonModal.id}</p>
+              </div>
               <button
                 onClick={() => setActiveJsonModal(null)}
-                className="text-[#666666] hover:text-white"
+                className="text-[#888888] hover:text-[#111111] p-1 rounded-sm cursor-pointer"
+                aria-label="Close dialog"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <pre className="p-3 bg-[#0A0A0A] border border-[#242424] font-mono text-[10px] text-[#888888] overflow-x-auto max-h-60">
-              {JSON.stringify(activeJsonModal.metadata, null, 2)}
+
+            <pre className="bg-[#F7F7F7] border border-[#E5E5E5] rounded p-3 text-[11px] font-mono text-[#111111] overflow-x-auto">
+              {JSON.stringify(activeJsonModal, null, 2)}
             </pre>
-            <div className="flex justify-end pt-1">
+
+            <div className="flex justify-end pt-2">
               <Button
                 variant="secondary"
-                size="xs"
+                size="sm"
                 onClick={() => setActiveJsonModal(null)}
               >
                 Close

@@ -1,54 +1,61 @@
 @import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  
-  --color-gold-50: #fbf9f5;
-  --color-gold-100: #f5f1e8;
-  --color-gold-200: #e8dec8;
-  --color-gold-300: #d6c6a4;
-  --color-gold-400: #c2ad82;
-  --color-gold-500: #b5a27e;
-  --color-gold-600: #9e8a65;
-  --color-gold-700: #7d6c4d;
-  --color-gold-800: #5c4e37;
-  --color-gold-900: #3d3324;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 :root {
   --bg-primary: #FFFFFF;
-  --bg-secondary: #F5F5F2;
-  --bg-dark: #090909;
+  --bg-card: #F7F7F7;
+  --bg-subtle: #F0F0F0;
   --text-primary: #111111;
-  --text-muted: #777777;
-  --border-subtle: #E5E5E2;
-  --charcoal: #242424;
-  --accent-gold: #B5A27E;
+  --text-secondary: #666666;
+  --text-muted: #888888;
+  --border-color: #E5E5E5;
+  --border-subtle: #EEEEEE;
+  --color-black: #111111;
+  --color-success: #16a34a;
+  --color-error: #dc2626;
+  --color-warning: #d97706;
 }
 
-body {
+html, body {
+  background-color: #FFFFFF;
+  color: #111111;
   font-family: var(--font-sans);
-  background-color: #090909;
-  color: #EDEDED;
   min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Financial-grade discreet scrollbar */
+/* Crisp, minimal scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #090909;
+  background: #FFFFFF;
 }
 ::-webkit-scrollbar-thumb {
-  background: #242424;
-  border-radius: 2px;
+  background: #D1D1D1;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a3a;
+  background: #999999;
+}
+
+/* Ensure no unintentional overflow clipping or text truncation bugs */
+input, textarea, select, button {
+  font-family: inherit;
+}
+
+/* Code and hash styling utility */
+.font-mono-break {
+  font-family: var(--font-mono);
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
